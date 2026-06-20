@@ -1,5 +1,5 @@
 
-const CACHE_NAME = 'henrys-journey-v104'; // Increment to force cache refresh for all clients
+const CACHE_NAME = 'henrys-journey-v105'; // Increment to force cache refresh for all clients
 const URLS_TO_CACHE = [
   '/index.html',
   '/manifest.json'

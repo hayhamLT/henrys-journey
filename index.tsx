@@ -2,6 +2,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { App } from './App';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import './types'; // Ensure types are loaded
 
 const reloadOnAssetFailure = async () => {
@@ -60,6 +61,8 @@ if ('serviceWorker' in navigator) {
 const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
-      <App />
+      <ErrorBoundary label="root">
+        <App />
+      </ErrorBoundary>
   </React.StrictMode>
 );
