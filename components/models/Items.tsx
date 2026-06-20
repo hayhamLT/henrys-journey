@@ -37,7 +37,7 @@ export const CrystalGem3D: React.FC<{ position: [number, number, number], color:
 
     const coinMat = (
         <meshStandardMaterial map={texture} color={c} metalness={0.06} roughness={0.52}
-            emissive={c} emissiveIntensity={isMissed ? 1.6 : 0.1} toneMapped={!isMissed} />
+            emissive={c} emissiveIntensity={isMissed ? 1.6 : 0} toneMapped={!isMissed} />
     );
     const engrave = '#9a6b08';
 
@@ -52,15 +52,15 @@ export const CrystalGem3D: React.FC<{ position: [number, number, number], color:
                 {/* Raised milled rim around the edge. */}
                 <mesh>
                     <torusGeometry args={[0.55, 0.07, 10, 28]} />
-                    <meshStandardMaterial color={rim} metalness={0.08} roughness={0.5} emissive={rim} emissiveIntensity={isMissed ? 1.2 : 0.1} toneMapped={!isMissed} />
+                    <meshStandardMaterial color={rim} metalness={0.08} roughness={0.5} emissive={rim} emissiveIntensity={isMissed ? 1.2 : 0} toneMapped={!isMissed} />
                 </mesh>
                 {/* Embossed "$" on both faces. */}
                 {[0.075, -0.075].map((z, i) => (
                     <group key={i} position={[0, 0, z]}>
-                        <mesh><boxGeometry args={[0.07, 0.46, 0.04]} /><meshStandardMaterial color={engrave} metalness={0.4} roughness={0.4} /></mesh>
-                        <mesh position={[0, 0.15, 0]}><boxGeometry args={[0.3, 0.075, 0.04]} /><meshStandardMaterial color={engrave} metalness={0.4} roughness={0.4} /></mesh>
-                        <mesh position={[0, 0, 0]}><boxGeometry args={[0.3, 0.07, 0.04]} /><meshStandardMaterial color={engrave} metalness={0.4} roughness={0.4} /></mesh>
-                        <mesh position={[0, -0.15, 0]}><boxGeometry args={[0.3, 0.075, 0.04]} /><meshStandardMaterial color={engrave} metalness={0.4} roughness={0.4} /></mesh>
+                        <mesh><boxGeometry args={[0.07, 0.46, 0.04]} /><meshStandardMaterial color={engrave} metalness={0.05} roughness={0.55} /></mesh>
+                        <mesh position={[0, 0.15, 0]}><boxGeometry args={[0.3, 0.075, 0.04]} /><meshStandardMaterial color={engrave} metalness={0.05} roughness={0.55} /></mesh>
+                        <mesh position={[0, 0, 0]}><boxGeometry args={[0.3, 0.07, 0.04]} /><meshStandardMaterial color={engrave} metalness={0.05} roughness={0.55} /></mesh>
+                        <mesh position={[0, -0.15, 0]}><boxGeometry args={[0.3, 0.075, 0.04]} /><meshStandardMaterial color={engrave} metalness={0.05} roughness={0.55} /></mesh>
                     </group>
                 ))}
             </group>
@@ -242,15 +242,12 @@ export const Bomb: React.FC<{ position: [number, number, number], seed?: number 
                 <sphereGeometry args={[0.27, 22, 18]} />
                 <meshStandardMaterial map={texture} color="#2b2b36" roughness={0.62} metalness={0.08} />
             </mesh>
-            {/* glossy shine spot — reads cute/squishy */}
-            <mesh position={[-0.1, 0.12, 0.18]}><sphereGeometry args={[0.05, 12, 12]} /><meshStandardMaterial color="#80808f" roughness={0.2} metalness={0.25} transparent opacity={0.5} /></mesh>
-            {/* tiny worried face (front-facing — bomb no longer spins so it stays visible) */}
-            <group position={[0, 0.03, 0.247]}>
-                <mesh position={[0.075, 0.03, 0]}><circleGeometry args={[0.043, 16]} /><meshStandardMaterial color="#fbfbfb" roughness={0.5} /></mesh>
-                <mesh position={[-0.075, 0.03, 0]}><circleGeometry args={[0.043, 16]} /><meshStandardMaterial color="#fbfbfb" roughness={0.5} /></mesh>
-                <mesh position={[0.083, 0.024, 0.012]}><circleGeometry args={[0.021, 12]} /><meshStandardMaterial color="#1b1b22" /></mesh>
-                <mesh position={[-0.067, 0.024, 0.012]}><circleGeometry args={[0.021, 12]} /><meshStandardMaterial color="#1b1b22" /></mesh>
-                <mesh position={[0, -0.055, 0.008]}><circleGeometry args={[0.026, 14]} /><meshStandardMaterial color="#1b1b22" /></mesh>
+            {/* simple geometric eyes — the SAME single matte dot as the character, but
+                light so they read on the dark bomb (a watchful little hazard). No glossy
+                shine, no sclera / pupils / sparkle — matches the unified low-poly look. */}
+            <group position={[0, 0.02, 0.247]}>
+                <RoundedBox args={[0.056, 0.074, 0.02]} radius={0.025} smoothness={4} position={[0.07, 0, 0]}><meshStandardMaterial color="#eaeaf0" roughness={0.6} metalness={0} /></RoundedBox>
+                <RoundedBox args={[0.056, 0.074, 0.02]} radius={0.025} smoothness={4} position={[-0.07, 0, 0]}><meshStandardMaterial color="#eaeaf0" roughness={0.6} metalness={0} /></RoundedBox>
             </group>
             {/* fuse cap + fuse */}
             <mesh position={[0, 0.26, 0]} castShadow><cylinderGeometry args={[0.055, 0.075, 0.06, 12]} /><meshStandardMaterial color="#3a3a46" roughness={0.7} /></mesh>
@@ -297,7 +294,7 @@ export const CosmicPortal: React.FC<{ position: [number, number, number], color:
                     <group position={[0, 0.03, 0]}>
                         <mesh rotation={[-Math.PI / 2, 0, 0]}>
                             <torusGeometry args={[0.35, 0.04, 16, 32]} />
-                            <meshStandardMaterial color={color} emissive={color} emissiveIntensity={emissiveInt} toneMapped={false} roughness={0.4} metalness={0.6} />
+                            <meshStandardMaterial color={color} emissive={color} emissiveIntensity={emissiveInt} toneMapped={false} roughness={0.65} metalness={0.05} />
                         </mesh>
                     </group>
                 </group>
@@ -321,19 +318,19 @@ export const CosmicPortal: React.FC<{ position: [number, number, number], color:
                 <group position={[0, 0.05, 0]}>
                     <mesh position={[0, 0, 0.25]}>
                         <boxGeometry args={[0.6, 0.05, 0.1]} />
-                        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={emissiveInt} toneMapped={false} roughness={0.4} metalness={0.6} />
+                        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={emissiveInt} toneMapped={false} roughness={0.65} metalness={0.05} />
                     </mesh>
                     <mesh position={[0, 0, -0.25]}>
                         <boxGeometry args={[0.6, 0.05, 0.1]} />
-                        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={emissiveInt} toneMapped={false} roughness={0.4} metalness={0.6} />
+                        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={emissiveInt} toneMapped={false} roughness={0.65} metalness={0.05} />
                     </mesh>
                     <mesh position={[0.25, 0, 0]} rotation={[0, Math.PI / 2, 0]}>
                         <boxGeometry args={[0.6, 0.05, 0.1]} />
-                        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={emissiveInt} toneMapped={false} roughness={0.4} metalness={0.6} />
+                        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={emissiveInt} toneMapped={false} roughness={0.65} metalness={0.05} />
                     </mesh>
                     <mesh position={[-0.25, 0, 0]} rotation={[0, Math.PI / 2, 0]}>
                         <boxGeometry args={[0.6, 0.05, 0.1]} />
-                        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={emissiveInt} toneMapped={false} roughness={0.4} metalness={0.6} />
+                        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={emissiveInt} toneMapped={false} roughness={0.65} metalness={0.05} />
                     </mesh>
                 </group>
             </group>
@@ -352,7 +349,7 @@ const TransferEmblem: React.FC<{ position: [number, number, number], color: stri
             ref.current.position.y = 0.6 + Math.sin(state.clock.elapsedTime * 2) * 0.07;
         }
     });
-    const matProps = { color, emissive: color, emissiveIntensity: 2.2, toneMapped: false, roughness: 0.4, metalness: 0.3 };
+    const matProps = { color, emissive: color, emissiveIntensity: 2.2, toneMapped: false, roughness: 0.65, metalness: 0.05 };
     return (
         <group position={[position[0], 0.6, position[2]]} ref={ref} scale={0.5}>
             <mesh><boxGeometry args={[0.07, 0.5, 0.07]} /><meshStandardMaterial {...matProps} /></mesh>

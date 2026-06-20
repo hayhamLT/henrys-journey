@@ -183,7 +183,7 @@ const Cell: React.FC<CellProps> = (props) => {
             </mesh>
             <mesh position={[0,0.11,0]} rotation={[Math.PI/2 - 0.45, 0, 0.3]}>
               <cylinderGeometry args={[0.27, 0.27, 0.06, 18]} />
-              <meshStandardMaterial color="#FFD24A" metalness={0.5} roughness={0.3} emissive="#7a2a00" emissiveIntensity={0.12} />
+              <meshStandardMaterial color="#FFD24A" metalness={0.06} roughness={0.5} emissive="#7a2a00" emissiveIntensity={0} />
             </mesh>
           </group>
         )}
@@ -196,11 +196,11 @@ const Cell: React.FC<CellProps> = (props) => {
             </mesh>
             <mesh position={[0,0,0.05]}>
               <boxGeometry args={[0.07, 0.24, 0.03]} />
-              <meshStandardMaterial color="#ffffff" emissive="#d1fae5" emissiveIntensity={0.6} toneMapped={false} />
+              <meshStandardMaterial color="#ffffff" emissiveIntensity={0} toneMapped={false} />
             </mesh>
             <mesh position={[0,0,0.05]}>
               <boxGeometry args={[0.24, 0.07, 0.03]} />
-              <meshStandardMaterial color="#ffffff" emissive="#d1fae5" emissiveIntensity={0.6} toneMapped={false} />
+              <meshStandardMaterial color="#ffffff" emissiveIntensity={0} toneMapped={false} />
             </mesh>
           </group>
         )}
@@ -210,7 +210,7 @@ const Cell: React.FC<CellProps> = (props) => {
           <group position={[0, 0.3, 0]}>
             <mesh position={[0, 0, 0]}>
               <boxGeometry args={[0.34, 0.34, 0.22]} />
-              <meshStandardMaterial color="#f4609f" roughness={0.5} metalness={0} emissive="#f4609f" emissiveIntensity={0.16} toneMapped={false} />
+              <meshStandardMaterial color="#f4609f" roughness={0.5} metalness={0} emissiveIntensity={0} toneMapped={false} />
             </mesh>
             <mesh position={[0, 0.2, 0]}>
               <boxGeometry args={[0.38, 0.06, 0.26]} />
@@ -229,7 +229,7 @@ const Cell: React.FC<CellProps> = (props) => {
             <group position={[0, 0.34, 0]}>
               <mesh rotation={[Math.PI/2, 0, 0]}>
                 <cylinderGeometry args={[0.27, 0.27, 0.07, 20]} />
-                <meshStandardMaterial color="#FFD24A" metalness={0.06} roughness={0.5} emissive="#7a2a00" emissiveIntensity={0.1} />
+                <meshStandardMaterial color="#FFD24A" metalness={0.06} roughness={0.5} emissive="#7a2a00" emissiveIntensity={0} />
               </mesh>
               <mesh position={[0, -0.18, 0]} rotation={[Math.PI/2, 0, 0]}>
                 <torusGeometry args={[0.22, 0.022, 8, 24]} />
@@ -282,7 +282,7 @@ const Cell: React.FC<CellProps> = (props) => {
             </mesh>
             <mesh rotation={[Math.PI/2, 0, 0]}>
               <torusGeometry args={[0.26, 0.03, 10, 28]} />
-              <meshStandardMaterial color="#FFD24A" emissive="#7a5a00" emissiveIntensity={0.25} metalness={0.06} roughness={0.5} toneMapped={false} />
+              <meshStandardMaterial color="#FFD24A" emissive="#7a5a00" emissiveIntensity={0} metalness={0.06} roughness={0.5} toneMapped={false} />
             </mesh>
           </group>
       )}
@@ -328,7 +328,7 @@ const Cell: React.FC<CellProps> = (props) => {
             </mesh>
             <mesh position={[0, 0, 0.06]}>
               <sphereGeometry args={[0.08, 12, 12]} />
-              <meshStandardMaterial color="#FFE9A8" emissive="#FFD24A" emissiveIntensity={0.35} toneMapped={false} />
+              <meshStandardMaterial color="#FFE9A8" emissive="#FFD24A" emissiveIntensity={0} toneMapped={false} />
             </mesh>
           </group>
       )}
@@ -339,11 +339,11 @@ const Cell: React.FC<CellProps> = (props) => {
           <group position={[0, 0, 0]}>
             <mesh position={[0, 0.28, 0]}>
               <boxGeometry args={[0.8, 0.56, 0.14]} />
-              <meshStandardMaterial color="#FFD24A" metalness={0.05} roughness={0.55} emissive="#7a5a00" emissiveIntensity={0.2} opacity={0.62} transparent />
+              <meshStandardMaterial color="#FFD24A" metalness={0.05} roughness={0.55} emissive="#7a5a00" emissiveIntensity={0} opacity={0.62} transparent />
             </mesh>
             <mesh position={[0, 0.56, 0.09]} rotation={[Math.PI / 2, 0, 0]}>
               <cylinderGeometry args={[0.13, 0.13, 0.04, 18]} />
-              <meshStandardMaterial color="#FFE9A8" metalness={0.06} roughness={0.5} emissive="#FFD24A" emissiveIntensity={0.28} toneMapped={false} />
+              <meshStandardMaterial color="#FFE9A8" metalness={0.06} roughness={0.5} emissiveIntensity={0} toneMapped={false} />
             </mesh>
           </group>
       )}

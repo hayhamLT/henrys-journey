@@ -46,7 +46,7 @@ export const VoxelHat: React.FC<{ id: HatId, clippingPlanes?: THREE.Plane[], isG
             purple: <><VoxelMaterial color="#d946ef" {...matProps} />{ghostEdge}</>,
             pink: <><VoxelMaterial color="#d946ef" {...matProps} />{ghostEdge}</>,
             grey: <><VoxelMaterial color="#94A3B8" {...matProps} />{ghostEdge}</>,
-            gold: <><VoxelMaterial color="#fbbf24" metalness={0.6} roughness={0.2} {...matProps} />{ghostEdge}</>,
+            gold: <><VoxelMaterial color="#fbbf24" metalness={0} roughness={0.85} {...matProps} />{ghostEdge}</>,
             orange: <><VoxelMaterial color="#fb923c" {...matProps} />{ghostEdge}</>,
             darkBlue: <><VoxelMaterial color="#1e3a8a" {...matProps} />{ghostEdge}</>,
             // Accent dyes — MATTE per the cute/premium/simple spec: gems read as soft
@@ -56,7 +56,7 @@ export const VoxelHat: React.FC<{ id: HatId, clippingPlanes?: THREE.Plane[], isG
             sapphire: <><VoxelMaterial color="#2563eb" roughness={0.55} {...matProps} />{ghostEdge}</>,
             emerald: <><VoxelMaterial color="#10b981" roughness={0.55} {...matProps} />{ghostEdge}</>,
             satinBlack: <><VoxelMaterial color="#222834" roughness={0.6} {...matProps} />{ghostEdge}</>,
-            steel: <><VoxelMaterial color="#cbd5e1" metalness={0.6} roughness={0.3} {...matProps} />{ghostEdge}</>,
+            steel: <><VoxelMaterial color="#cbd5e1" metalness={0.05} roughness={0.7} {...matProps} />{ghostEdge}</>,
             ivory: <><VoxelMaterial color="#f5f0e1" roughness={0.7} {...matProps} />{ghostEdge}</>,
             navy: <><VoxelMaterial color="#172554" roughness={0.6} {...matProps} />{ghostEdge}</>,
             feltIndigo: <><VoxelMaterial color="#4338ca" roughness={0.92} {...matProps} />{ghostEdge}</>,
@@ -64,7 +64,7 @@ export const VoxelHat: React.FC<{ id: HatId, clippingPlanes?: THREE.Plane[], isG
             leather: <><VoxelMaterial color="#3E2723" roughness={0.9} {...matProps} />{ghostEdge}</>,
             slate: <><VoxelMaterial color="#475569" roughness={0.88} {...matProps} />{ghostEdge}</>,
             starGold: <><VoxelMaterial color="#f5c84b" roughness={0.5} {...matProps} />{ghostEdge}</>,
-            chrome: <><VoxelMaterial color="#cbd5e1" metalness={0.4} roughness={0.4} {...matProps} />{ghostEdge}</>,
+            chrome: <><VoxelMaterial color="#cbd5e1" metalness={0.05} roughness={0.65} {...matProps} />{ghostEdge}</>,
             glossBlue: <><VoxelMaterial color="#0e8aa8" roughness={0.6} {...matProps} />{ghostEdge}</>,
             cyanGlow: <><VoxelMaterial color="#22d3ee" roughness={0.5} {...matProps} />{ghostEdge}</>,
             rubyGem: <><VoxelMaterial color="#fb7185" roughness={0.5} {...matProps} />{ghostEdge}</>,
@@ -104,7 +104,7 @@ export const VoxelHat: React.FC<{ id: HatId, clippingPlanes?: THREE.Plane[], isG
 // Detailed Backpack Geometry using RoundedBox
 export const BackpackDetail: React.FC<{ color: string, clippingPlanes?: THREE.Plane[], isGhost?: boolean, opacity?: number, disableTexture?: boolean }> = ({ color, clippingPlanes, isGhost, opacity = 1, disableTexture }) => {
     const matProps = { color, clippingPlanes, transparent: isGhost, opacity: opacity, depthWrite: !isGhost, isGhost, type: 'cloth' as const, disableTexture };
-    const techProps = { color: '#00ffcc', emissive: '#00ffcc', emissiveIntensity: 0.5, clippingPlanes, transparent: isGhost, opacity: opacity, depthWrite: !isGhost };
+    const techProps = { color: '#22d3ee', clippingPlanes, transparent: isGhost, opacity: opacity, depthWrite: !isGhost };
     const strapProps = { color: '#333', clippingPlanes, transparent: isGhost, opacity: opacity, depthWrite: !isGhost, isGhost, type: 'cloth' as const, disableTexture };
     const ghostEdge = isGhost ? <GhostEdges opacity={opacity} /> : null;
 

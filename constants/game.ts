@@ -1,6 +1,6 @@
 import { World } from '../types';
 
-export const APP_VERSION = 'v1.0.108'; // Matches SW Cache Version
+export const APP_VERSION = 'v1.0.109'; // Matches SW Cache Version
 
 // Single source of truth for campaign pacing. Change this and the worlds,
 // generator difficulty curve, and all UI counts follow automatically.
