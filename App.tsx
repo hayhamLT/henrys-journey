@@ -4,7 +4,7 @@ import { flushSync } from 'react-dom';
 import Header from './components/Header';
 import Grid from './components/Grid';
 import Sequence from './components/Sequence';
-import LevelBuilder from './components/LevelBuilder';
+const LevelBuilder = React.lazy(() => import('./components/LevelBuilder')); // code-split: loaded only when building
 import WorldMapLanding from './components/WorldMapLanding';
 import Sidebar from './components/Sidebar';
 import SettingsView from './components/SettingsView';
@@ -21,7 +21,7 @@ import DailyChallengeHub from './components/DailyChallengeHub';
 import SocialHub from './components/SocialHub';
 import ShopTab from './components/ShopTab';
 import MoreMenu from './components/MoreMenu';
-import AdminPanel from './components/AdminPanel';
+const AdminPanel = React.lazy(() => import('./components/AdminPanel')); // code-split: admin-only, never loaded for normal players
 import WorldCompleteOverlay from './components/WorldCompleteOverlay';
 import LoginModal from './components/LoginModal';
 import LevelInsightCard from './components/LevelInsightCard';
@@ -2556,11 +2556,13 @@ export const App: React.FC = () => {
                   )}
 
                   {appState === 'admin' && (
-                      <AdminPanel
-                          user={user}
-                          onBack={() => setAppState('main_menu')}
-                          onLogin={handleLogin}
-                      />
+                      <React.Suspense fallback={<div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',color:'rgba(255,255,255,0.6)'}}>Loading…</div>}>
+                          <AdminPanel
+                              user={user}
+                              onBack={() => setAppState('main_menu')}
+                              onLogin={handleLogin}
+                          />
+                      </React.Suspense>
                   )}
 
                   {isGameplayState && (
@@ -2787,21 +2789,23 @@ export const App: React.FC = () => {
                   {/* ... (Render sub-components like MainMenu, etc. - no changes to their rendering logic, just props passed if state changed location) ... */}
                   {appState === 'build' && (
                       <div className="absolute inset-0 z-30">
-                          <LevelBuilder 
-                              onExit={() => {
-                                  if (coopGameId) {
-                                      leaveCoopGame(coopGameId).catch(console.error);
-                                      setCoopGameId(null);
-                                      setCoopState(null);
-                                  }
-                                  setAppState('main_menu');
-                              }}
-                              onSave={handleSaveLevel}
-                              user={user}
-                              isGuest={isGuest}
-                              onLogin={handleLogin}
-                              onOpenLevels={() => { }}
-                          />
+                          <React.Suspense fallback={<div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',color:'rgba(255,255,255,0.6)'}}>Loading…</div>}>
+                              <LevelBuilder
+                                  onExit={() => {
+                                      if (coopGameId) {
+                                          leaveCoopGame(coopGameId).catch(console.error);
+                                          setCoopGameId(null);
+                                          setCoopState(null);
+                                      }
+                                      setAppState('main_menu');
+                                  }}
+                                  onSave={handleSaveLevel}
+                                  user={user}
+                                  isGuest={isGuest}
+                                  onLogin={handleLogin}
+                                  onOpenLevels={() => { }}
+                              />
+                          </React.Suspense>
                       </div>
                   )}
 
