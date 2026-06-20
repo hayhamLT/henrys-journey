@@ -110,7 +110,20 @@ service cloud.firestore {
 
       match /scores/{uid} {
         allow read: if true;
-        allow create, update: if isOwner(uid);
+        // Anti-cheat: a player writes only their OWN score; the value must be a
+        // non-negative number, may only INCREASE, and a single write may add at
+        // most ~one strong run's worth of points (cap well above any honest
+        // per-level score so legit play is never rejected, but a DevTools
+        // increment(999999) is blocked). True authority needs server
+        // re-simulation; this is the zero-regression-risk first line of defence.
+        allow create: if isOwner(uid)
+          && request.resource.data.score is number
+          && request.resource.data.score >= 0
+          && request.resource.data.score <= 5000;
+        allow update: if isOwner(uid)
+          && request.resource.data.score is number
+          && request.resource.data.score >= resource.data.score
+          && request.resource.data.score <= resource.data.score + 5000;
         allow delete: if false;
       }
     }
@@ -120,7 +133,12 @@ service cloud.firestore {
       allow read: if true;
       match /scores/{uid} {
         allow read: if true;
-        allow create, update: if isOwner(uid);
+        // Anti-cheat: own score only, a non-negative number within a generous
+        // single-day cap (honest daily totals are far below this).
+        allow create, update: if isOwner(uid)
+          && request.resource.data.score is number
+          && request.resource.data.score >= 0
+          && request.resource.data.score <= 20000;
         allow delete: if false;
       }
     }
