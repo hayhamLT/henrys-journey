@@ -49,7 +49,7 @@ import { evaluateBadges, makeBadge } from './utils/badges';
 import { generateLevelName } from './utils/nameGenerator';
 import { playSound, initAudio, startAmbientMusic, setMusicVolume, setSfxVolume } from './sound';
 import { ICONS } from './components/icons';
-import { signInWithGoogle, logoutUser, saveUserData, subscribeToUserData, subscribeAuth, updateUserName, updateUserPhoto, saveUserLevel, deleteUserLevel, subscribeToUserLevels, publishLevel, subscribeToInvites, createCoopSession, joinCoopGame, subscribeToCoopGame, addMoveToCoopSession, removeLastMoveFromCoopSession, updatePlayerStatus, reportCoopLevelComplete, toggleLevelLike, postTournamentScore, postDailyScore, sendInvite, leaveCoopGame, clearPlayerSequence, deleteUserProfile, sendHeartbeat, subscribeToCoopMessages, respondToInvite, resetUserProgress, trackAdminEvent } from './firebase';
+import { signInWithGoogle, logoutUser, saveUserData, subscribeToUserData, subscribeAuth, updateUserName, updateUserPhoto, saveUserLevel, deleteUserLevel, subscribeToUserLevels, publishLevel, subscribeToInvites, createCoopSession, joinCoopGame, subscribeToCoopGame, addMoveToCoopSession, removeLastMoveFromCoopSession, updatePlayerStatus, reportCoopLevelComplete, toggleLevelLike, postTournamentScore, postDailyScore, sendInvite, leaveCoopGame, clearPlayerSequence, deleteUserProfile, sendHeartbeat, subscribeToCoopMessages, respondToInvite, resetUserProgress, trackAdminEvent, setAnalyticsSuppressed } from './firebase';
 import { solve } from './utils/solver';
 import { setSeed } from './utils/random';
 import { triggerHaptic } from './utils/haptics';
@@ -114,6 +114,10 @@ export const App: React.FC = () => {
   // --- DEMO MODE STATE (Hoisted) ---
   const [isDemoMode, setIsDemoMode] = useState(false);
   const [isDemoStarting, setIsDemoStarting] = useState(false);
+  // Suppress analytics while the attract-mode bot auto-plays — it's not a real
+  // user, so it would otherwise spam Firestore (2 writes/event, a level every few
+  // seconds) and pollute the metrics dashboard.
+  useEffect(() => { setAnalyticsSuppressed(isDemoMode); }, [isDemoMode]);
   const lastInteractionRef = useRef(Date.now());
     const inactivityTimeoutRef = useRef<any>(null);
   const demoTimerRef = useRef<any>(null);

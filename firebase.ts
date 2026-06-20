@@ -852,12 +852,18 @@ export const getDailyLeaderboard = async (dateStr: string): Promise<TournamentPl
     } catch (e) { return []; }
 };
 
+// Analytics suppression — toggled on during demo/attract mode so the auto-playing
+// bot doesn't pollute metrics OR spam Firestore (every event = up to 2 writes, and
+// attract mode cycles a level every few seconds → a flood of bogus writes).
+let analyticsSuppressed = false;
+export const setAnalyticsSuppressed = (suppressed: boolean) => { analyticsSuppressed = suppressed; };
+
 export const trackAdminEvent = async (
     eventName: string,
     context: string = 'general',
     metadata: Record<string, any> = {}
 ) => {
-    if (!db || !eventName) return;
+    if (analyticsSuppressed || !db || !eventName) return;
     const now = Date.now();
     const d = new Date(now);
     const dateKey = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
