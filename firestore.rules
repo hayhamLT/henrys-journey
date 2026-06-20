@@ -1,0 +1,149 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function isAdmin() {
+      return signedIn() && request.auth.token.email == 'hayhamlt@gmail.com';
+    }
+
+    function isParticipant(gameData) {
+      return signedIn() && (
+        gameData.hostUid == request.auth.uid ||
+        gameData.guestUid == request.auth.uid
+      );
+    }
+
+    function isGameParticipant(gameId) {
+      return signedIn() &&
+        exists(/databases/$(database)/documents/active_games/$(gameId)) &&
+        isParticipant(get(/databases/$(database)/documents/active_games/$(gameId)).data);
+    }
+
+    match /users/{uid} {
+      // Public profile doc holds only social fields (displayName, searchName,
+      // photoURL, lastLogin, totalScore, badges, etc). Private data (email)
+      // lives in the /private subcollection below. Cross-user reads here are
+      // required for leaderboards/search/friends.
+      allow read: if signedIn();
+      allow write: if isOwner(uid);
+
+      // Private per-user data (e.g. email). Readable only by the owner or the
+      // admin so other signed-in users cannot read/enumerate emails.
+      match /private/{docId} {
+        allow read: if isOwner(uid) || isAdmin();
+        allow write: if isOwner(uid);
+      }
+
+      match /levels/{levelId} {
+        allow read, write: if isOwner(uid);
+      }
+
+      match /friends/{friendUid} {
+        allow read, write: if isOwner(uid);
+      }
+    }
+
+    match /levels/{levelId} {
+      allow read: if true;
+      allow create: if signedIn() && request.resource.data.authorUid == request.auth.uid;
+      allow update, delete: if signedIn() && resource.data.authorUid == request.auth.uid;
+    }
+
+    match /invites/{inviteId} {
+      allow read: if isAdmin() || (signedIn() && (
+        resource.data.toUid == request.auth.uid ||
+        resource.data.fromUid == request.auth.uid
+      ));
+      allow create: if signedIn() && request.resource.data.fromUid == request.auth.uid;
+      allow update, delete: if signedIn() && (
+        resource.data.toUid == request.auth.uid ||
+        resource.data.fromUid == request.auth.uid
+      );
+    }
+
+    match /active_games/{gameId} {
+      allow read: if isParticipant(resource.data);
+      allow create: if signedIn() &&
+        request.resource.data.hostUid == request.auth.uid &&
+        request.resource.data.guestUid == null;
+      allow update: if
+        isParticipant(resource.data) ||
+        (
+          signedIn() &&
+          resource.data.guestUid == null &&
+          request.resource.data.guestUid == request.auth.uid
+        );
+      allow delete: if isParticipant(resource.data);
+
+      match /messages/{messageId} {
+        allow read: if isGameParticipant(gameId);
+        allow create: if isGameParticipant(gameId) && request.resource.data.senderUid == request.auth.uid;
+        allow update, delete: if false;
+      }
+    }
+
+    // Direct messages between two users. threadId is the two uids sorted and
+    // joined with "__". A signed-in user may read/write a thread only if their
+    // uid is one of the two halves of the threadId.
+    match /dm_threads/{threadId}/messages/{messageId} {
+      function isDmParticipant() {
+        return signedIn() && (
+          threadId.split('__')[0] == request.auth.uid ||
+          threadId.split('__')[1] == request.auth.uid
+        );
+      }
+      allow read: if isDmParticipant();
+      allow create: if isDmParticipant() && request.resource.data.senderUid == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    match /tournaments/{tournamentId} {
+      allow read: if true;
+      allow write: if false;
+
+      match /scores/{uid} {
+        allow read: if true;
+        allow create, update: if isOwner(uid);
+        allow delete: if false;
+      }
+    }
+
+    // Daily challenge leaderboard: public read, each player writes only their own score.
+    match /daily/{dateKey} {
+      allow read: if true;
+      match /scores/{uid} {
+        allow read: if true;
+        allow create, update: if isOwner(uid);
+        allow delete: if false;
+      }
+    }
+
+    match /mail/{mailId} {
+      allow read, write: if false;
+    }
+
+    // Admin analytics data: readable only by the admin email.
+    match /admin_metrics_daily/{dateKey} {
+      allow read: if isAdmin();
+      allow create, update: if signedIn();
+      allow delete: if false;
+    }
+
+    match /admin_event_logs/{eventId} {
+      allow read: if isAdmin();
+      allow create: if signedIn();
+      allow update, delete: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -1,0 +1,59 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build output
+dist/
+dist-ssr/
+build/
+*.local
+.vite/
+*.tsbuildinfo
+
+# Firebase
+.firebase/
+firebase-debug.log
+firestore-debug.log
+database-debug.log
+ui-debug.log
+.firebaserc.local
+
+# Environment & secrets — NEVER commit these
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p8
+*.p12
+*serviceAccount*.json
+serviceAccount*.json
+*firebase-adminsdk*.json
+*credentials*.json
+secrets/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Test / coverage
+coverage/
+.nyc_output/
+
+# Editor / OS
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+.idea/
+*.swp
+*.swo
+
+# Dropbox conflict artifacts
+*conflicted copy*
+*Conflict*

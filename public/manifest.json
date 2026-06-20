@@ -1,0 +1,21 @@
+{
+  "name": "Henry's Journey",
+  "short_name": "Henry",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1e293b",
+  "theme_color": "#1e293b",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "data:image/svg+xml;utf8,<svg viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'><rect width='24' height='24' rx='6' fill='%23F2C48D'/><rect x='0' y='12' width='24' height='12' rx='6' fill='%23E0AC69' fill-opacity='0.3'/><path d='M0 6C0 2.68629 2.68629 0 6 0H18C21.3137 0 24 2.68629 24 6V9.5H0V6Z' fill='%23634236'/><rect x='6.5' y='12' width='4' height='4' rx='0.5' fill='%231E293B'/><rect x='7.5' y='12' width='1.5' height='1.5' rx='0.2' fill='%23FFFFFF' fill-opacity='0.9'/><rect x='13.5' y='12' width='4' height='4' rx='0.5' fill='%231E293B'/><rect x='14.5' y='12' width='1.5' height='1.5' rx='0.2' fill='%23FFFFFF' fill-opacity='0.9'/><rect x='4' y='16' width='2' height='2' rx='0.5' fill='%23EF4444' fill-opacity='0.15'/><rect x='18' y='16' width='2' height='2' rx='0.5' fill='%23EF4444' fill-opacity='0.15'/><rect x='10' y='17' width='4' height='1.5' rx='0.5' fill='%239A3412'/></svg>",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "data:image/svg+xml;utf8,<svg viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'><rect width='24' height='24' rx='6' fill='%23F2C48D'/><rect x='0' y='12' width='24' height='12' rx='6' fill='%23E0AC69' fill-opacity='0.3'/><path d='M0 6C0 2.68629 2.68629 0 6 0H18C21.3137 0 24 2.68629 24 6V9.5H0V6Z' fill='%23634236'/><rect x='6.5' y='12' width='4' height='4' rx='0.5' fill='%231E293B'/><rect x='7.5' y='12' width='1.5' height='1.5' rx='0.2' fill='%23FFFFFF' fill-opacity='0.9'/><rect x='13.5' y='12' width='4' height='4' rx='0.5' fill='%231E293B'/><rect x='14.5' y='12' width='1.5' height='1.5' rx='0.2' fill='%23FFFFFF' fill-opacity='0.9'/><rect x='4' y='16' width='2' height='2' rx='0.5' fill='%23EF4444' fill-opacity='0.15'/><rect x='18' y='16' width='2' height='2' rx='0.5' fill='%23EF4444' fill-opacity='0.15'/><rect x='10' y='17' width='4' height='1.5' rx='0.5' fill='%239A3412'/></svg>",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}
