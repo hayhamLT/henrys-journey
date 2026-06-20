@@ -359,13 +359,20 @@ export const saveUserData = async (uid: string, data: Partial<FirestoreUser>) =>
 
 // ... Rest of the file continues with standard exports ...
 // (Re-exporting all existing functions, just ensuring they use typed Firestore calls where possible)
+// Shared onSnapshot error handler. Without one, a permission-denied or dropped
+// connection silently TERMINATES the listener, leaving co-op / invites /
+// leaderboards frozen with no signal. At minimum, surface it.
+const subErr = (label: string) => (err: unknown) => {
+    console.error(`[firestore] ${label} subscription error:`, (err as { code?: string })?.code || err);
+};
+
 export const subscribeToUserData = (uid: string, callback: (data: FirestoreUser | null) => void) => {
     if (!db) { callback(null); return () => {}; }
     const ref = doc(db, 'users', uid);
     return onSnapshot(ref, (doc) => {
         if (doc.exists()) callback(doc.data() as FirestoreUser);
         else callback(null);
-    });
+    }, subErr('user'));
 };
 
 export const saveUserLevel = async (uid: string, levelData: LevelDataForShare, defaultName: string) => {
@@ -397,7 +404,7 @@ export const subscribeToUserLevels = (uid: string, callback: (levels: CustomLeve
             levels.push({ id: doc.id, name: d.name, data: levelData as LevelDataForShare, timestamp: d.timestamp });
         });
         callback(levels);
-    });
+    }, subErr('userLevels'));
 }
 
 // ... All other functions (subscribeToInvites, getUserProfile, etc) remain largely the same logic 
@@ -415,7 +422,7 @@ export const subscribeToInvites = (uid: string, callback: (invites: GameInvite[]
         });
         invites.sort((a, b) => b.timestamp - a.timestamp);
         callback(invites);
-    });
+    }, subErr('invites'));
 };
 
 export const getUserProfile = async (uid: string): Promise<UserProfile | null> => {
@@ -674,7 +681,7 @@ export const subscribeToCoopGame = (gameId: string, callback: (game: CoopGameSta
     if (!db) { callback(null); return () => {}; }
     return onSnapshot(doc(db, 'active_games', gameId), (doc) => {
         if (doc.exists()) callback(doc.data() as CoopGameState); else callback(null);
-    });
+    }, subErr('coopGame'));
 };
 
 export const leaveCoopGame = async (gameId: string) => {
@@ -747,7 +754,7 @@ export const subscribeToCoopMessages = (gameId: string, callback: (msgs: CoopMes
             msgs.push({ id: doc.id, senderUid: d.senderUid, senderName: d.senderName, text: d.text, isEmoji: d.isEmoji, timestamp: d.timestamp });
         });
         callback(msgs.reverse());
-    });
+    }, subErr('coopMessages'));
 };
 
 // --- DIRECT MESSAGES (1:1 chat between two users) ---
@@ -785,7 +792,7 @@ export const subscribeToDirectMessages = (
             msgs.push({ id: d.id, senderUid: data.senderUid, senderName: data.senderName, text: data.text, timestamp: data.timestamp });
         });
         callback(msgs.reverse());
-    }, () => callback([]));
+    }, (err) => { subErr('dm')(err); callback([]); });
 };
 
 export const postTournamentScore = async (tournamentId: string, user: UserProfile, scoreIncrement: number) => {
@@ -806,7 +813,7 @@ export const subscribeToTournamentLeaderboard = (tournamentId: string, callback:
             players.push({ id: doc.id, name: d.name, score: d.score, photoURL: d.photoURL, timestamp: d.timestamp, rank: rank++ });
         });
         callback(players);
-    }, () => callback([]));
+    }, (err) => { subErr('tournamentBoard')(err); callback([]); });
 }
 
 export const subscribeToTournamentUserScore = (tournamentId: string, userId: string, callback: (player: TournamentPlayer | null) => void) => {
@@ -816,7 +823,7 @@ export const subscribeToTournamentUserScore = (tournamentId: string, userId: str
             const d = doc.data();
             callback({ id: doc.id, name: d.name, score: d.score, photoURL: d.photoURL, timestamp: d.timestamp });
         } else callback(null);
-    });
+    }, subErr('tournamentScore'));
 }
 
 export const getTournamentPlayerCount = async (tournamentId: string): Promise<number> => {
