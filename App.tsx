@@ -497,6 +497,7 @@ export const App: React.FC = () => {
       }
 
       const canStartDemo = settings.attractModeEnabled
+          && !prefersReducedMotion   // a11y: don't auto-burst 3D motion at idle, motion-sensitive players
           && appState === 'main_menu'
           && !isDemoMode
           && !isDemoStarting
@@ -510,7 +511,7 @@ export const App: React.FC = () => {
               startDemoModeRef.current();
           }
       }, 10000);
-  }, [settings.attractModeEnabled, appState, isDemoMode, isDemoStarting, showSearchModal, showCoopLoginModal]);
+  }, [settings.attractModeEnabled, prefersReducedMotion, appState, isDemoMode, isDemoStarting, showSearchModal, showCoopLoginModal]);
 
   // Global Interaction Handler for Inactivity & Demo Cancellation
   useEffect(() => {

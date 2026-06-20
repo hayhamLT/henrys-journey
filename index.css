@@ -928,3 +928,21 @@ body.is-dragging {
     animation: none;
   }
 }
+
+/* Accessibility — global reduced-motion safety net. For players who request
+   reduced motion (a real need for motion-sensitive / vestibular kids), make
+   every animation & transition resolve near-instantly rather than play out, and
+   stop infinite loops after one pass. We use 0.01ms (not `none`) so elements
+   still reach their END state — nothing is left invisible or half-rendered.
+   The more specific reduced-motion rules above still win where they apply.
+   This block has ZERO effect on users who haven't requested reduced motion. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+}
