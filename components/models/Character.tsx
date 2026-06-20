@@ -223,13 +223,11 @@ export const VoxelCharacter: React.FC<CharacterProps> = ({ skinColor, shirtColor
                         <RoundedBox args={[headWidth, headHeight, headDepth]} position={[0, 0.01, 0]} radius={headRadius} smoothness={chamferSmoothness} castShadow={!isGhost} receiveShadow={!isGhost}><VoxelMaterial color={skinColor} {...skinProps} />{ghostEdges}</RoundedBox>
                         {!isGhost && (
                             <group scale={[1, eyeScaleY, 1]} position={[0, 0.0, 0]}>
-                                {[0.094, -0.094].map((ex, i) => (
+                                {[0.092, -0.092].map((ex, i) => (
                                   <group key={i} position={[ex, 0.0, 0.158]}>
-                                    {/* big glossy chibi eye: white base + dark round iris + two sparkles */}
-                                    <RoundedBox args={[0.108, 0.142, 0.012]} radius={0.052} smoothness={4} position={[0, 0, -0.001]}><meshStandardMaterial color="#FFFFFF" roughness={0.5} metalness={0} clippingPlanes={clippingPlanes} /></RoundedBox>
-                                    <RoundedBox args={[0.085, 0.114, 0.024]} radius={0.042} smoothness={4} position={[0, -0.004, 0.007]}><meshStandardMaterial color={eyeColor} roughness={0.4} metalness={0} clippingPlanes={clippingPlanes} /></RoundedBox>
-                                    <mesh position={[0.02, 0.032, 0.021]}><circleGeometry args={[0.024, 14]} /><meshStandardMaterial color="#FFFFFF" roughness={0.35} metalness={0} clippingPlanes={clippingPlanes} /></mesh>
-                                    <mesh position={[-0.017, -0.028, 0.021]}><circleGeometry args={[0.0115, 12]} /><meshStandardMaterial color="#FFFFFF" roughness={0.35} metalness={0} clippingPlanes={clippingPlanes} /></mesh>
+                                    {/* simple geometric eye — ONE soft dark rounded-rect dot, matte, no
+                                        sclera / iris / sparkle, matching the game's low-poly look */}
+                                    <RoundedBox args={[0.072, 0.098, 0.03]} radius={0.03} smoothness={4} position={[0, 0, 0]}><meshStandardMaterial color={eyeColor} roughness={0.6} metalness={0} clippingPlanes={clippingPlanes} /></RoundedBox>
                                   </group>
                                 ))}
                             </group>
