@@ -364,25 +364,6 @@ function drawPortalPad(ctx: CanvasRenderingContext2D, color: string) {
     ctx.shadowBlur = 0;
 }
 
-function drawMetalPattern(ctx: CanvasRenderingContext2D, colorHex: string) {
-    ctx.fillStyle = colorHex;
-    ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
-    applyNoise(ctx, 60);
-    for (let i = 0; i < 8; i++) {
-        const x = Math.random() * CANVAS_SIZE;
-        const y = Math.random() * CANVAS_SIZE;
-        const r = 10 + Math.random() * 30; // Scaled
-        const grad = ctx.createRadialGradient(x, y, 0, x, y, r);
-        grad.addColorStop(0, 'rgba(139, 69, 19, 0.4)');
-        grad.addColorStop(1, 'rgba(139, 69, 19, 0)');
-        ctx.fillStyle = grad;
-        ctx.beginPath();
-        ctx.arc(x, y, r, 0, Math.PI*2);
-        ctx.fill();
-    }
-    drawSurfaceDetail(ctx, 444);
-    drawBevel(ctx, 5);
-}
 
 function drawDirtyEdges(ctx: CanvasRenderingContext2D, color: string) {
     ctx.fillStyle = color;
@@ -694,16 +675,6 @@ export const getPortalTexture = (color: string): THREE.CanvasTexture => {
     return tex;
 }
 
-export const getGemTexture = (color: string): THREE.CanvasTexture => {
-    const key = `gem-${color}-${CACHE_VERSION}`;
-    if (textureCache[key]) return textureCache[key];
-    const { canvas, ctx } = getContext();
-    drawGemFacets(ctx, color);
-    const tex = new THREE.CanvasTexture(canvas);
-    tex.colorSpace = THREE.SRGBColorSpace;
-    textureCache[key] = tex;
-    return tex;
-}
 
 export const getBombTexture = (color: string): THREE.CanvasTexture => {
     const key = `bomb-${color}-${CACHE_VERSION}`;
@@ -733,13 +704,3 @@ export const getBombTexture = (color: string): THREE.CanvasTexture => {
     return tex;
 }
 
-export const getMetalTexture = (color: string): THREE.CanvasTexture => {
-    const key = `metal-${color}-${CACHE_VERSION}`;
-    if (textureCache[key]) return textureCache[key];
-    const { canvas, ctx } = getContext();
-    drawMetalPattern(ctx, color);
-    const tex = new THREE.CanvasTexture(canvas);
-    tex.colorSpace = THREE.SRGBColorSpace;
-    textureCache[key] = tex;
-    return tex;
-}

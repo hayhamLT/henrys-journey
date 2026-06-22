@@ -325,7 +325,7 @@ const LevelBuilder: React.FC<LevelBuilderProps> = ({ onExit, onSave, user, isGue
     const toolbarItems = [
         { type: CellType.Wall, name: 'Wall', icon: <ICONS.WallTool /> },
         { type: CellType.Hole, name: 'Void', icon: <ICONS.HoleTool2D /> },
-        { type: CellType.Package, name: 'Gem', icon: <ICONS.GemTool /> },
+        { type: CellType.Package, name: 'Coin', icon: <ICONS.GemTool /> },
         { type: CellType.Bomb, name: 'Bomb', icon: <ICONS.BombTool /> },
         { type: CellType.CrumblingFloor, name: 'Fragile', icon: <ICONS.CrumblingFloorTool2D /> },
         { type: CellType.Trap, name: 'Trap', icon: <ICONS.TrapTool /> },

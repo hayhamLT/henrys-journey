@@ -219,7 +219,7 @@ const BuilderCell: React.FC<{
                     {isStart && <CosmicPortal position={[0,0,0]} color="#38BDF8" isOpen={false} rotationSpeed={2} shape="circle" />}
                     
                     {isPackage && (
-                    (gemColor === 'circuit' || gemColor === 'blue' || gemColor === 'red' || gemColor === 'purple' || gemColor === 'orange' || gemColor === 'cyan' || gemColor === 'phase') ? 
+                    (gemColor === 'circuit' || gemColor === 'blue' || gemColor === 'red' || gemColor === 'purple' || gemColor === 'orange' || gemColor === 'cyan') ? 
                     <Key3D position={[0,0,0]} color={gemColor} /> : 
                     <CrystalGem3D position={[0,0,0]} color={gemColor} />
                     )}

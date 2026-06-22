@@ -239,7 +239,7 @@ export const MONEY_LESSONS: MoneyLesson[] = [
             'When you keep savings in a bank, the bank adds a little extra. That extra is called interest.',
             'Your money makes more money — like a seed growing into a tree!',
         ],
-        mission: 'The gems are your interest today — collect every bonus on top of finishing!',
+        mission: 'The coins are your interest today — collect every bonus on top of finishing!',
         quiz: {
             question: 'What is interest?',
             choices: [

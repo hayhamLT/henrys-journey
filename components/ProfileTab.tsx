@@ -29,9 +29,9 @@ const MILESTONES = [
     { id: 'scr_250k', name: 'Magnate', desc: 'Earn 250,000 Points', threshold: 250000, type: 'score', icon: 'Star', color: 'bg-red-600', colorDark: 'bg-red-950', text: 'text-red-100' },
 
     // --- Gems (Collection - Calculated) ---
-    { id: 'gem_50', name: 'Collector', desc: 'Collect 50 Gems', threshold: 50, type: 'gems', icon: 'Gem', color: 'bg-emerald-500', colorDark: 'bg-emerald-900', text: 'text-emerald-100' },
-    { id: 'gem_200', name: 'Jeweler', desc: 'Collect 200 Gems', threshold: 200, type: 'gems', icon: 'Gem', color: 'bg-teal-500', colorDark: 'bg-teal-900', text: 'text-teal-100' },
-    { id: 'gem_500', name: 'Treasure Hunter', desc: 'Collect 500 Gems', threshold: 500, type: 'gems', icon: 'Gem', color: 'bg-green-600', colorDark: 'bg-green-900', text: 'text-green-100' },
+    { id: 'gem_50', name: 'Collector', desc: 'Collect 50 Coins', threshold: 50, type: 'gems', icon: 'Gem', color: 'bg-emerald-500', colorDark: 'bg-emerald-900', text: 'text-emerald-100' },
+    { id: 'gem_200', name: 'Jeweler', desc: 'Collect 200 Coins', threshold: 200, type: 'gems', icon: 'Gem', color: 'bg-teal-500', colorDark: 'bg-teal-900', text: 'text-teal-100' },
+    { id: 'gem_500', name: 'Treasure Hunter', desc: 'Collect 500 Coins', threshold: 500, type: 'gems', icon: 'Gem', color: 'bg-green-600', colorDark: 'bg-green-900', text: 'text-green-100' },
 
     // --- Perfect Runs (Efficiency - Calculated) ---
     { id: 'prf_5', name: 'Planner', desc: '5 Perfect Runs', threshold: 5, type: 'perfect', icon: 'Vision', color: 'bg-pink-400', colorDark: 'bg-pink-800', text: 'text-pink-100' },
@@ -280,7 +280,7 @@ const ProfileTab: React.FC<ProfileTabProps> = ({ user, isGuest, totalScore, comp
             <div className="grid grid-cols-2 gap-3">
                 <StatCard label="Coins" value={<CoinAmount n={totalScore} />} icon={<ICONS.Score />} color="text-yellow-400" />
                 <StatCard label="Levels Done" value={completedLevels} icon={<ICONS.Check />} color="text-green-400" />
-                <StatCard label="Gems Collected" value={totalGems} icon={<ICONS.Gem />} color="text-emerald-400" />
+                <StatCard label="Coins Collected" value={totalGems} icon={<ICONS.Gem />} color="text-emerald-400" />
                 <StatCard label="Perfect Runs" value={perfectLevels} icon={<ICONS.Vision />} color="text-pink-400" />
             </div>
 

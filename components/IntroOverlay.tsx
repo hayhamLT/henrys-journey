@@ -41,7 +41,7 @@ const IntroOverlay: React.FC<IntroOverlayProps> = ({ onDismiss, onOpenHelp, isTo
                             <ICONS.Info /> Quick tip!
                         </h2>
                         <p className="text-xs text-slate-600 font-bold leading-relaxed">
-                            1. Snatch <span className="text-[var(--accent-green)]">ALL GEMS</span>.<br/>
+                            1. Snatch <span className="text-[var(--accent-green)]">ALL COINS</span>.<br/>
                             2. Get back to the <span className="text-[var(--accent-blue)]">START PORTAL</span> to escape!
                         </p>
                     </div>

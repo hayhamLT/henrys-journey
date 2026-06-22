@@ -1,7 +1,7 @@
 
 import React, { useRef, useState, useEffect, useLayoutEffect, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Box, Html, RoundedBox } from '@react-three/drei';
+import { Box, Html, RoundedBox, Outlines } from '@react-three/drei';
 import * as THREE from 'three';
 import { damp } from 'maath/easing';
 import { Move, HatId, EyeState, GameStatus, CharacterAppearance, Theme } from '../../types';
@@ -186,68 +186,50 @@ export const VoxelCharacter: React.FC<CharacterProps> = ({ skinColor, shirtColor
             if (leftLegGroup.current) { const isRelaxed = shift > 0.2; damp(leftLegGroup.current.rotation, 'x', isRelaxed ? 0.1 : 0, 0.2, dt); damp(leftLegGroup.current.rotation, 'z', isRelaxed ? 0.03 : 0, 0.2, dt); }
             if (rightLegGroup.current) { const isRelaxed = shift < -0.2; damp(rightLegGroup.current.rotation, 'x', isRelaxed ? 0.1 : 0, 0.2, dt); damp(rightLegGroup.current.rotation, 'z', isRelaxed ? -0.03 : 0, 0.2, dt); }
             const armNoise = Math.sin(t * 1.5) * 0.015 + Math.sin(t * 2.8) * 0.01;
-            if (leftArmGroup.current) { damp(leftArmGroup.current.rotation, 'x', armNoise, 0.2, dt); damp(leftArmGroup.current.rotation, 'z', 0.05 + armNoise * 0.5 - (shift * 0.02), 0.2, dt); }
-            if (rightArmGroup.current) { damp(rightArmGroup.current.rotation, 'x', -armNoise, 0.2, dt); damp(rightArmGroup.current.rotation, 'z', -0.05 - armNoise * 0.5 - (shift * 0.02), 0.2, dt); }
+            if (leftArmGroup.current) { damp(leftArmGroup.current.rotation, 'x', armNoise, 0.2, dt); damp(leftArmGroup.current.rotation, 'z', 0.12 + armNoise * 0.5 - (shift * 0.02), 0.2, dt); }
+            if (rightArmGroup.current) { damp(rightArmGroup.current.rotation, 'x', -armNoise, 0.2, dt); damp(rightArmGroup.current.rotation, 'z', -0.12 - armNoise * 0.5 - (shift * 0.02), 0.2, dt); }
         }
     });
     
     const eyeScaleY = (blinking || eyeState === 'sleeping') ? 0.1 : 1;
-    // FLAT solid colors — no cloth/skin/hair textures. The textured surfaces read
-    // as a noisy "voxel doll"; the game's look is simple/low-poly/geometric, which
-    // wants clean flat color. disableTexture=true makes VoxelMaterial drop the map.
     const matProps = { transparent: finalOpacity < 1, opacity: finalOpacity, clippingPlanes, depthWrite: true, isGhost, disableTexture: true };
     const hairProps = { ...matProps, type: 'hair' as const };
     const clothProps = { ...matProps, type: 'cloth' as const };
     const skinProps = { ...matProps, type: 'skin' as const };
     const ghostEdges = isGhost ? <GhostEdges opacity={finalOpacity} /> : null;
-    const chamferRadius = 0.085; const limbChamferRadius = 0.05; const chamferSmoothness = 2;
-    const headWidth = 0.33; const headHeight = 0.305; const headDepth = 0.31; const headRadius = 0.135;
+    // Lightly slicker: a touch rounder bevel + smoother chamfer than the original
+    // voxel hard edges, WITHOUT changing the boxy proportions.
+    const chamferRadius = 0.05; const limbChamferRadius = 0.032; const chamferSmoothness = 2;
+    const headWidth = 0.32; const headHeight = 0.28; const headDepth = 0.30; const headRadius = 0.05;
 
     return (
         <group ref={groupRef}>
             <group ref={bodyRef} position={[0, 0.35, 0]}>
-                {/* one soft rounded chibi tummy — no collar, the big head does the work */}
-                <RoundedBox args={[0.3, 0.26, 0.22]} radius={chamferRadius} smoothness={chamferSmoothness} position={[0, 0.12, 0]} castShadow={!isGhost} receiveShadow={!isGhost}><VoxelMaterial color={shirtColor} {...clothProps} />{ghostEdges}</RoundedBox>
-                {/* cute/premium/simple: clothing is flat matte color-blocks — no
-                    belt, collar, badge, buttons or straps. The face does the work. */}
+                <RoundedBox args={[0.26, 0.25, 0.16]} radius={chamferRadius} smoothness={chamferSmoothness} position={[0, 0.125, 0]} castShadow={!isGhost} receiveShadow={!isGhost}><VoxelMaterial color={shirtColor} {...clothProps} />{ghostEdges}</RoundedBox>
+                <RoundedBox args={[0.26, 0.05, 0.16]} radius={chamferRadius} smoothness={chamferSmoothness} position={[0, 0.23, 0]} castShadow={!isGhost}><VoxelMaterial color={shirtColor} {...clothProps} />{ghostEdges}</RoundedBox>
                 {isGirl ? (
                     <group position={[0, 0, 0]}>
                         <mesh position={[0, -0.09, 0]} castShadow={!isGhost} receiveShadow={!isGhost} scale={[0.26, 1, 0.16]}><cylinderGeometry args={[0.7071, 0.7425, 0.18, 4, 1, false, Math.PI / 4]} /><VoxelMaterial color={pantsColor} {...clothProps} />{ghostEdges}</mesh>
                     </group>
                 ) : (
-                    <RoundedBox args={[0.3, 0.13, 0.21]} radius={chamferRadius} smoothness={chamferSmoothness} position={[0, -0.05, 0]} castShadow={!isGhost} receiveShadow={!isGhost}><VoxelMaterial color={pantsColor} {...clothProps} />{ghostEdges}</RoundedBox>
+                    <RoundedBox args={[0.28, 0.13, 0.15]} radius={chamferRadius} smoothness={chamferSmoothness} position={[0, -0.065, 0]} castShadow={!isGhost} receiveShadow={!isGhost}><VoxelMaterial color={pantsColor} {...clothProps} />{ghostEdges}</RoundedBox>
                 )}
                 {!isGirl && !isFalling && !isGhost && <BackpackDetail color={pantsColor} clippingPlanes={clippingPlanes} isGhost={isGhost} opacity={finalOpacity} disableTexture={true} />}
-                <group position={[0, 0.37, 0]} ref={headRef}>
-                    <group scale={[1.45, 1.45, 1.45]}>
+                <group position={[0, 0.35, 0]} ref={headRef}>
+                    <group scale={[1.15, 1.15, 1.15]}>
                         <RoundedBox args={[headWidth, headHeight, headDepth]} position={[0, 0.01, 0]} radius={headRadius} smoothness={chamferSmoothness} castShadow={!isGhost} receiveShadow={!isGhost}><VoxelMaterial color={skinColor} {...skinProps} />{ghostEdges}</RoundedBox>
                         {!isGhost && (
-                            <group scale={[1, eyeScaleY, 1]} position={[0, 0.0, 0]}>
-                                {[0.092, -0.092].map((ex, i) => (
-                                  <group key={i} position={[ex, 0.0, 0.158]}>
-                                    {/* simple geometric eye — ONE soft dark rounded-rect dot, matte, no
-                                        sclera / iris / sparkle, matching the game's low-poly look */}
-                                    <RoundedBox args={[0.072, 0.098, 0.03]} radius={0.03} smoothness={4} position={[0, 0, 0]}><meshStandardMaterial color={eyeColor} roughness={0.6} metalness={0} clippingPlanes={clippingPlanes} /></RoundedBox>
-                                  </group>
-                                ))}
-                            </group>
-                        )}
-                        {!isGhost && (
-                            <group position={[0, 0, 0]}>
-                                {/* tiny soft smile (pushed forward to sit on the rounder, deeper head) */}
-                                <mesh position={[0, -0.085, 0.163]} rotation={[0, 0, Math.PI]}>
-                                    <torusGeometry args={[0.042, 0.013, 8, 18, Math.PI]} />
-                                    <meshStandardMaterial color="#c4685a" roughness={0.9} metalness={0} clippingPlanes={clippingPlanes} />
-                                </mesh>
-                                {/* (blush removed — the floating pink discs read as noise on the simple look) */}
+                            <group scale={[1, eyeScaleY, 1]} position={[0, 0.01, 0]}>
+                                <group position={[0.09, 0.0, 0.155]}><RoundedBox args={[0.07, 0.11, 0.01]} radius={0.02} smoothness={4} position={[0, 0, -0.001]}><meshStandardMaterial color="#FFFFFF" roughness={1.0} metalness={0} clippingPlanes={clippingPlanes} /></RoundedBox><RoundedBox args={[0.04, 0.07, 0.015]} radius={0.015} smoothness={4} position={[0, -0.01, 0.005]}><meshStandardMaterial color={eyeColor} roughness={1.0} metalness={0} clippingPlanes={clippingPlanes} /></RoundedBox></group>
+                                <group position={[-0.09, 0.0, 0.155]}><RoundedBox args={[0.07, 0.11, 0.01]} radius={0.02} smoothness={4} position={[0, 0, -0.001]}><meshStandardMaterial color="#FFFFFF" roughness={1.0} metalness={0} clippingPlanes={clippingPlanes} /></RoundedBox><RoundedBox args={[0.04, 0.07, 0.015]} radius={0.015} smoothness={4} position={[0, -0.01, 0.005]}><meshStandardMaterial color={eyeColor} roughness={1.0} metalness={0} clippingPlanes={clippingPlanes} /></RoundedBox></group>
                             </group>
                         )}
                         <group position={[0, 0.15, 0]}>
-                            {!hideHat && <group ref={hatRef} position={[0, 0.0, 0]}><VoxelHat id={hatId} clippingPlanes={clippingPlanes} isGhost={isGhost} opacity={finalOpacity} depthWrite={matProps.depthWrite} disableTexture={false} /></group>}
-                            {/* simple rounded hair: soft crown cap + back + little fringe */}
-                            <RoundedBox args={[headWidth + 0.02, 0.095, headDepth + 0.02]} radius={0.05} smoothness={chamferSmoothness} position={[0, -0.045, 0]} castShadow={!isGhost}><VoxelMaterial color={hairColor} {...hairProps} />{ghostEdges}</RoundedBox>
-                            <RoundedBox args={[headWidth + 0.01, 0.16, 0.09]} radius={0.045} smoothness={chamferSmoothness} position={[0, -0.09, -0.13]} castShadow={!isGhost}><VoxelMaterial color={hairColor} {...hairProps} />{ghostEdges}</RoundedBox>
-                            <RoundedBox args={[headWidth - 0.02, 0.055, 0.05]} radius={0.025} smoothness={chamferSmoothness} position={[0, -0.05, 0.15]} castShadow={!isGhost}><VoxelMaterial color={hairColor} {...hairProps} />{ghostEdges}</RoundedBox>
+                            {!hideHat && <group ref={hatRef} position={[0, 0.0, 0]}><VoxelHat id={hatId} clippingPlanes={clippingPlanes} isGhost={isGhost} opacity={finalOpacity} depthWrite={matProps.depthWrite} disableTexture={true} /></group>}
+                            <RoundedBox args={[headWidth + 0.02, 0.08, headDepth + 0.02]} radius={0.02} smoothness={chamferSmoothness} position={[0, 0, 0]} castShadow={!isGhost}><VoxelMaterial color={hairColor} {...hairProps} />{ghostEdges}</RoundedBox>
+                            <RoundedBox args={[headWidth + 0.04, 0.06, headDepth + 0.04]} radius={0.02} smoothness={chamferSmoothness} position={[0, -0.02, 0]} castShadow={!isGhost}><VoxelMaterial color={hairColor} {...hairProps} />{ghostEdges}</RoundedBox>
+                            <RoundedBox args={[headWidth + 0.02, 0.15, 0.08]} radius={0.02} smoothness={chamferSmoothness} position={[0, -0.05, -0.12]} castShadow={!isGhost}><VoxelMaterial color={hairColor} {...hairProps} />{ghostEdges}</RoundedBox>
+                            <RoundedBox args={[headWidth + 0.02, 0.08, 0.05]} radius={0.02} smoothness={chamferSmoothness} position={[0, -0.05, 0.14]} castShadow={!isGhost}><VoxelMaterial color={hairColor} {...hairProps} />{ghostEdges}</RoundedBox>
                             {isGirl && (
                                  <>
                                     <RoundedBox args={[headWidth + 0.02, 0.15, 0.08]} radius={0.02} smoothness={chamferSmoothness} position={[0, -0.15, -0.12]} castShadow={!isGhost}><VoxelMaterial color={hairColor} {...hairProps} />{ghostEdges}</RoundedBox>
@@ -257,29 +239,19 @@ export const VoxelCharacter: React.FC<CharacterProps> = ({ skinColor, shirtColor
                                     <group ref={rightPigtailRef} position={[-0.22, -0.05, 0]}><mesh position={[0, -0.08, 0]} castShadow={!isGhost} rotation={[0, Math.PI/4, 0]}><cylinderGeometry args={[0.04, 0.09, 0.25, 4]} /><VoxelMaterial color={hairColor} {...hairProps} />{ghostEdges}</mesh></group>
                                  </>
                             )}
-                            {/* Mila-only: a candy-pink hair bow that pops against the orange pigtails. */}
-                            {!isGhost && isGirl && (
-                                <group position={[0, 0.075, 0.05]}>
-                                    <mesh position={[0.048, 0, 0]} rotation={[0, 0, -0.55]} castShadow={!isGhost}><coneGeometry args={[0.042, 0.085, 4]} /><VoxelMaterial color="#ff5fa2" {...clothProps} /></mesh>
-                                    <mesh position={[-0.048, 0, 0]} rotation={[0, 0, 0.55 + Math.PI]} castShadow={!isGhost}><coneGeometry args={[0.042, 0.085, 4]} /><VoxelMaterial color="#ff5fa2" {...clothProps} /></mesh>
-                                    <mesh position={[0, 0, 0.012]} castShadow={!isGhost}><sphereGeometry args={[0.026, 12, 12]} /><VoxelMaterial color="#ff5fa2" {...clothProps} /></mesh>
-                                </group>
-                            )}
                         </group>
                     </group>
                 </group>
-                {/* stub arm: one chunky sleeve + a round mitt hand */}
-                <group ref={leftArmGroup} position={[-0.165, 0.21, 0]}><RoundedBox args={[0.095, 0.2, 0.095]} radius={0.046} smoothness={chamferSmoothness} position={[0, -0.08, 0]} castShadow={!isGhost}><VoxelMaterial color={shirtColor} {...clothProps} />{ghostEdges}</RoundedBox><RoundedBox args={[0.095, 0.08, 0.095]} radius={0.04} smoothness={chamferSmoothness} position={[0, -0.205, 0]} castShadow={!isGhost}><VoxelMaterial color={skinColor} {...skinProps} />{ghostEdges}</RoundedBox></group>
-                <group ref={rightArmGroup} position={[0.165, 0.21, 0]}><RoundedBox args={[0.095, 0.2, 0.095]} radius={0.046} smoothness={chamferSmoothness} position={[0, -0.08, 0]} castShadow={!isGhost}><VoxelMaterial color={shirtColor} {...clothProps} />{ghostEdges}</RoundedBox><RoundedBox args={[0.095, 0.08, 0.095]} radius={0.04} smoothness={chamferSmoothness} position={[0, -0.205, 0]} castShadow={!isGhost}><VoxelMaterial color={skinColor} {...skinProps} />{ghostEdges}</RoundedBox></group>
+                <group ref={leftArmGroup} position={[-0.19, 0.22, 0]}><RoundedBox args={[0.09, 0.14, 0.09]} radius={limbChamferRadius} smoothness={chamferSmoothness} position={[0, -0.05, 0]} castShadow={!isGhost}><VoxelMaterial color={shirtColor} {...clothProps} />{ghostEdges}</RoundedBox><RoundedBox args={[0.105, 0.04, 0.105]} radius={0.015} smoothness={chamferSmoothness} position={[0, -0.13, 0]} castShadow={!isGhost}><VoxelMaterial color="#ffffff" {...clothProps} />{ghostEdges}</RoundedBox><RoundedBox args={[0.08, 0.1, 0.08]} radius={limbChamferRadius} smoothness={chamferSmoothness} position={[0, -0.2, 0]} castShadow={!isGhost}><VoxelMaterial color={skinColor} {...skinProps} />{ghostEdges}</RoundedBox></group>
+                <group ref={rightArmGroup} position={[0.19, 0.22, 0]}><RoundedBox args={[0.09, 0.14, 0.09]} radius={limbChamferRadius} smoothness={chamferSmoothness} position={[0, -0.05, 0]} castShadow={!isGhost}><VoxelMaterial color={shirtColor} {...clothProps} />{ghostEdges}</RoundedBox><RoundedBox args={[0.105, 0.04, 0.105]} radius={0.015} smoothness={chamferSmoothness} position={[0, -0.13, 0]} castShadow={!isGhost}><VoxelMaterial color="#ffffff" {...clothProps} />{ghostEdges}</RoundedBox><RoundedBox args={[0.08, 0.1, 0.08]} radius={limbChamferRadius} smoothness={chamferSmoothness} position={[0, -0.2, 0]} castShadow={!isGhost}><VoxelMaterial color={skinColor} {...skinProps} />{ghostEdges}</RoundedBox></group>
             </group>
-            {/* stub leg: one rounded leg + a round shoe */}
-            <group ref={leftLegGroup} position={[-0.075, 0.2, 0]}>
-                <RoundedBox args={[0.115, 0.17, 0.115]} radius={0.052} smoothness={chamferSmoothness} position={[0, -0.085, 0]} castShadow={!isGhost}><VoxelMaterial color={isGirl ? skinColor : pantsColor} {...(isGirl ? skinProps : clothProps)} />{ghostEdges}</RoundedBox>
-                <RoundedBox args={[0.13, 0.075, 0.18]} radius={0.035} smoothness={chamferSmoothness} position={[0, -0.185, 0.028]} castShadow={!isGhost}><VoxelMaterial color={isGhost ? pantsColor : "#7a4a2b"} {...matProps} />{ghostEdges}</RoundedBox>
+            <group ref={leftLegGroup} position={[-0.08, 0.22, 0]}>
+                {isGirl ? (<RoundedBox args={[0.07, 0.18, 0.07]} radius={limbChamferRadius} smoothness={chamferSmoothness} position={[0, -0.09, 0]} castShadow={!isGhost}><VoxelMaterial color={skinColor} {...skinProps} />{ghostEdges}</RoundedBox>) : (<><RoundedBox args={[0.11, 0.18, 0.11]} radius={limbChamferRadius} smoothness={chamferSmoothness} position={[0, -0.09, 0]} castShadow={!isGhost}><VoxelMaterial color={pantsColor} {...clothProps} />{ghostEdges}</RoundedBox><RoundedBox args={[0.12, 0.04, 0.12]} radius={0.015} smoothness={chamferSmoothness} position={[0, -0.17, 0]} castShadow={!isGhost}><VoxelMaterial color={pantsColor} {...clothProps} />{ghostEdges}</RoundedBox></>)}
+                <group position={[0, -0.22, 0.02]}><RoundedBox args={[0.12, 0.05, 0.16]} radius={limbChamferRadius} smoothness={chamferSmoothness} position={[0, 0.015, 0]} castShadow={!isGhost}><VoxelMaterial color={isGhost ? pantsColor : "#333"} {...matProps} />{ghostEdges}</RoundedBox><RoundedBox args={[0.125, 0.025, 0.165]} radius={0.015} smoothness={chamferSmoothness} position={[0, -0.025, 0]} castShadow={!isGhost}><VoxelMaterial color="#ffffff" {...matProps} />{ghostEdges}</RoundedBox><RoundedBox args={[0.13, 0.015, 0.04]} radius={0.005} smoothness={chamferSmoothness} position={[0, 0.02, 0.02]} castShadow={!isGhost}><VoxelMaterial color="#ffffff" {...matProps} />{ghostEdges}</RoundedBox></group>
             </group>
-            <group ref={rightLegGroup} position={[0.075, 0.2, 0]}>
-                <RoundedBox args={[0.115, 0.17, 0.115]} radius={0.052} smoothness={chamferSmoothness} position={[0, -0.085, 0]} castShadow={!isGhost}><VoxelMaterial color={isGirl ? skinColor : pantsColor} {...(isGirl ? skinProps : clothProps)} />{ghostEdges}</RoundedBox>
-                <RoundedBox args={[0.13, 0.075, 0.18]} radius={0.035} smoothness={chamferSmoothness} position={[0, -0.185, 0.028]} castShadow={!isGhost}><VoxelMaterial color={isGhost ? pantsColor : "#7a4a2b"} {...matProps} />{ghostEdges}</RoundedBox>
+            <group ref={rightLegGroup} position={[0.08, 0.22, 0]}>
+                {isGirl ? (<RoundedBox args={[0.07, 0.18, 0.07]} radius={limbChamferRadius} smoothness={chamferSmoothness} position={[0, -0.09, 0]} castShadow={!isGhost}><VoxelMaterial color={skinColor} {...skinProps} />{ghostEdges}</RoundedBox>) : (<><RoundedBox args={[0.11, 0.18, 0.11]} radius={limbChamferRadius} smoothness={chamferSmoothness} position={[0, -0.09, 0]} castShadow={!isGhost}><VoxelMaterial color={pantsColor} {...clothProps} />{ghostEdges}</RoundedBox><RoundedBox args={[0.12, 0.04, 0.12]} radius={0.015} smoothness={chamferSmoothness} position={[0, -0.17, 0]} castShadow={!isGhost}><VoxelMaterial color={pantsColor} {...clothProps} />{ghostEdges}</RoundedBox></>)}
+                <group position={[0, -0.22, 0.02]}><RoundedBox args={[0.12, 0.05, 0.16]} radius={limbChamferRadius} smoothness={chamferSmoothness} position={[0, 0.015, 0]} castShadow={!isGhost}><VoxelMaterial color={isGhost ? pantsColor : "#333"} {...matProps} />{ghostEdges}</RoundedBox><RoundedBox args={[0.125, 0.025, 0.165]} radius={0.015} smoothness={chamferSmoothness} position={[0, -0.025, 0]} castShadow={!isGhost}><VoxelMaterial color="#ffffff" {...matProps} />{ghostEdges}</RoundedBox><RoundedBox args={[0.13, 0.015, 0.04]} radius={0.005} smoothness={chamferSmoothness} position={[0, 0.02, 0.02]} castShadow={!isGhost}><VoxelMaterial color="#ffffff" {...matProps} />{ghostEdges}</RoundedBox></group>
             </group>
         </group>
     );

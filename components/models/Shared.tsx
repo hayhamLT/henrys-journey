@@ -1,7 +1,6 @@
 
 import React, { useMemo } from 'react';
 import * as THREE from 'three';
-import { Edges } from '@react-three/drei';
 import { Theme } from '../../types';
 import { getMatteTexture, getHairTexture, getClothTexture, getSkinTexture, TileStyle } from '../../utils/textureGenerator';
 
@@ -27,7 +26,7 @@ export const THEME_PALETTES: Record<string, Palette> = {
     'day': { sky: ['#334155', '#020617'], wall: '#9FB7D2', wallAccent: '#E5F0FB', floor: DAY_FLOOR, floorSide: DAY_SIDE, highlight: '#22d3ee', treeTrunk: '#5D4037', treeLeaf: '#2E7D32' },
     
     // Sunset (Shop) - Warm modern coral sand
-    'sunset': { sky: ['#be123c', '#4c0519'], wall: '#FB7185', wallAccent: '#FECDD3', floor: WARM_FLOOR, floorSide: WARM_SIDE, highlight: '#FF8A65', treeTrunk: '#5D4037', treeLeaf: '#2E7D32' }, 
+    'sunset': { sky: ['#be123c', '#4c0519'], wall: '#FB7185', wallAccent: '#FECDD3', floor: WARM_FLOOR, floorSide: WARM_SIDE, highlight: '#06b6d4', treeTrunk: '#5D4037', treeLeaf: '#2E7D32' }, 
     
     // Night (Abyss) - Readable moonlit blues
     'night': { sky: ['#1e1b4b', '#020617'], wall: '#60A5FA', wallAccent: '#BFDBFE', floor: '#7DB6FF', floorSide: '#4F7FD9', highlight: '#00f2ff', treeTrunk: '#5D4037', treeLeaf: '#2E7D32' },
@@ -36,7 +35,7 @@ export const THEME_PALETTES: Record<string, Palette> = {
     'sunrise': { sky: ['#115e59', '#042f2e'], wall: '#2DD4BF', wallAccent: '#CCFBF1', floor: '#9AD7C3', floorSide: '#5EA48A', highlight: '#FF8A65', treeTrunk: '#5D4037', treeLeaf: '#2E7D32' },
     
     // Alpine - Clean frost slate
-    'alpine': { sky: ['#64748b', '#0f172a'], wall: '#94A3B8', wallAccent: '#E2E8F0', floor: '#D7E6F3', floorSide: '#A6BED3', highlight: '#67e8f9', treeTrunk: '#5D4037', treeLeaf: '#2E7D32' },
+    'alpine': { sky: ['#64748b', '#0f172a'], wall: '#94A3B8', wallAccent: '#BFD4E8', floor: '#A9BED4', floorSide: '#A6BED3', highlight: '#67e8f9', treeTrunk: '#5D4037', treeLeaf: '#2E7D32' },
     
     // Desert (Quest) - Warm modern sand
     'desert': { 
@@ -62,11 +61,11 @@ export const THEME_PALETTES: Record<string, Palette> = {
     // Volcanic - BRIGHTENED MAGMA PALETTE
     'volcanic': { 
         sky: ['#f97316', '#7c2d12'], // Much brighter oranges
-        wall: '#ef4444', 
+        wall: '#9f1239', 
         wallAccent: '#fde047', 
         floor: '#FFAA5C', 
         floorSide: '#E46B2E', 
-        highlight: '#facc15', 
+        highlight: '#22d3ee', 
         treeTrunk: '#422006', 
         treeLeaf: '#ea580c' 
     }, 
@@ -181,8 +180,6 @@ export const tintColor = (base: string, tint: string, amount: number) => {
 };
 
 export const GHOST_BLUE_LIGHT = '#22d3ee'; 
-export const GHOST_EDGE_COLOR = '#06b6d4'; 
-
 export const GhostEdges = ({ opacity = 0.4 }: { opacity?: number }) => null; 
 
 export const VoxelMaterial: React.FC<{ 
@@ -248,11 +245,11 @@ export const VoxelMaterial: React.FC<{
         );
     }
 
-    return <meshStandardMaterial 
-        map={texture} 
-        {...otherProps} 
-        color={texture ? '#ffffff' : safeColor} 
-        depthWrite={props.depthWrite !== undefined ? props.depthWrite : true} 
+    return <meshStandardMaterial
+        map={texture}
+        {...otherProps}
+        color={texture ? '#ffffff' : safeColor}
+        depthWrite={props.depthWrite !== undefined ? props.depthWrite : true}
         roughness={finalRoughness}
         metalness={finalMetalness}
     />;

@@ -1,24 +1,23 @@
 
-import React, { useRef, useMemo, useState, useEffect } from 'react';
+import React, { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Box, Edges, RoundedBox, Torus, Octahedron } from '@react-three/drei';
+import { Box, Edges } from '@react-three/drei';
 import * as THREE from 'three'; 
 import * as THREE_LIB from 'three'; // Use a safer import for internal refs
 import { damp } from 'maath/easing';
 import { Move, CellType } from '../../types';
-import { VoxelMaterial, LOCK_KEY_COLORS, coordRandom, GHOST_EDGE_COLOR } from './Shared';
-import { getGemTexture, getBombTexture, getMatteTexture, getMetalTexture } from '../../utils/textureGenerator';
+import { VoxelMaterial, LOCK_KEY_COLORS, coordRandom } from './Shared';
+import { getBombTexture, getMatteTexture } from '../../utils/textureGenerator';
 
-// The core collectible is now a spinning GOLD COIN (with an embossed $) instead
-// of an abstract gem — the literal "you earned money" reward in a money game.
-// Colored variants stay tinted so colored key-coins still read as special.
 export const CrystalGem3D: React.FC<{ position: [number, number, number], color: string, isMissed?: boolean }> = ({ position, color, isMissed }) => {
     const groupRef = useRef<THREE_LIB.Group>(null);
 
+    // Boxy GOLD COIN — money to earn. Standard packages are gold; named lock-colors
+    // stay tinted so colored key-coins still read as special.
     const isGold = !LOCK_KEY_COLORS[color] || color === 'green';
-    const c = isMissed ? '#f43f5e' : (isGold ? '#FFD24A' : (LOCK_KEY_COLORS[color] || color));
+    const c = isMissed ? '#f43f5e' : (isGold ? '#FFD24A' : LOCK_KEY_COLORS[color]);
     const rim = isMissed ? '#b91c1c' : (isGold ? '#E0A82E' : c);
-    const texture = useMemo(() => getMetalTexture(c), [c]);
+    const pip = isMissed ? '#7f1d1d' : (isGold ? '#9A6B08' : c);
 
     const offsets = useMemo(() => ({
         phase: Math.random() * Math.PI * 2,
@@ -30,38 +29,33 @@ export const CrystalGem3D: React.FC<{ position: [number, number, number], color:
         if (groupRef.current) {
             const t = state.clock.elapsedTime + offsets.phase;
             groupRef.current.position.y = position[1] + 0.45 + Math.sin(t * offsets.floatFreq) * 0.1;
-            // Spin around Y like a classic collectible coin.
             groupRef.current.rotation.y += delta * offsets.spinSpeed * (isMissed ? 2.5 : 1.0);
         }
     });
 
-    const coinMat = (
-        <meshStandardMaterial map={texture} color={c} metalness={0.06} roughness={0.52}
-            emissive={c} emissiveIntensity={isMissed ? 1.6 : 0} toneMapped={!isMissed} />
+    const mat = (col: string, emis: number) => (
+        <meshStandardMaterial color={col} emissive={col} emissiveIntensity={isMissed ? emis : 0} toneMapped={!isMissed} roughness={0.5} metalness={0.1} />
     );
-    const engrave = '#9a6b08';
 
     return (
         <group position={position}>
             <group ref={groupRef} scale={0.34}>
-                {/* Coin disc — faces ±Z, spins about Y. */}
+                {/* fat low-poly disc on edge, spins about Y */}
                 <mesh castShadow rotation={[Math.PI / 2, 0, 0]}>
-                    <cylinderGeometry args={[0.55, 0.55, 0.14, 28]} />
-                    {coinMat}
+                    <cylinderGeometry args={[0.55, 0.55, 0.16, 18]} />
+                    {mat(c, 1.8)}
                 </mesh>
-                {/* Raised milled rim around the edge. */}
+                {/* raised rim band */}
                 <mesh>
-                    <torusGeometry args={[0.55, 0.07, 10, 28]} />
-                    <meshStandardMaterial color={rim} metalness={0.08} roughness={0.5} emissive={rim} emissiveIntensity={isMissed ? 1.2 : 0} toneMapped={!isMissed} />
+                    <torusGeometry args={[0.55, 0.06, 8, 20]} />
+                    {mat(rim, 1.2)}
                 </mesh>
-                {/* Embossed "$" on both faces. */}
-                {[0.075, -0.075].map((z, i) => (
-                    <group key={i} position={[0, 0, z]}>
-                        <mesh><boxGeometry args={[0.07, 0.46, 0.04]} /><meshStandardMaterial color={engrave} metalness={0.05} roughness={0.55} /></mesh>
-                        <mesh position={[0, 0.15, 0]}><boxGeometry args={[0.3, 0.075, 0.04]} /><meshStandardMaterial color={engrave} metalness={0.05} roughness={0.55} /></mesh>
-                        <mesh position={[0, 0, 0]}><boxGeometry args={[0.3, 0.07, 0.04]} /><meshStandardMaterial color={engrave} metalness={0.05} roughness={0.55} /></mesh>
-                        <mesh position={[0, -0.15, 0]}><boxGeometry args={[0.3, 0.075, 0.04]} /><meshStandardMaterial color={engrave} metalness={0.05} roughness={0.55} /></mesh>
-                    </group>
+                {/* embossed center pip on each face */}
+                {[0.085, -0.085].map((z, i) => (
+                    <mesh key={i} position={[0, 0, z]} rotation={[Math.PI / 2, 0, 0]}>
+                        <cylinderGeometry args={[0.22, 0.22, 0.04, 14]} />
+                        {mat(pip, 1.0)}
+                    </mesh>
                 ))}
             </group>
         </group>
@@ -74,7 +68,6 @@ export const Key3D: React.FC<{ position: [number, number, number], color: string
     const pulseSpeed = isMissed ? 8 : 3;
     const spinSpeed = isMissed ? 5 : 2;
     
-    const texture = useMemo(() => getMetalTexture(c), [c]);
 
     useFrame((state, delta) => { 
         if (ref.current) { 
@@ -85,18 +78,22 @@ export const Key3D: React.FC<{ position: [number, number, number], color: string
     
     return (
         <group position={position} scale={0.4}>
-            {/* Simple matte-gold key: shaft + one ring bow + one tooth (cute/premium/simple). */}
             <group ref={ref} rotation={[0, 0, Math.PI/4]}>
                 <mesh position={[0, 0, 0]} castShadow>
-                    <boxGeometry args={[0.13, 0.62, 0.13]} />
-                    <meshStandardMaterial map={texture} color={c} metalness={0.06} roughness={0.55} />
+                    <boxGeometry args={[0.15, 0.65, 0.15]} />
+                    <meshStandardMaterial color={c} metalness={0.15} roughness={0.55} />
                 </mesh>
-                <mesh position={[0, 0.4, 0]} castShadow>
-                    <torusGeometry args={[0.14, 0.055, 8, 18]} />
-                    <meshStandardMaterial map={texture} color={c} metalness={0.06} roughness={0.55} />
-                </mesh>
-                <Box args={[0.18, 0.1, 0.11]} position={[0.11, -0.22, 0]} castShadow>
-                    <meshStandardMaterial map={texture} color={c} metalness={0.06} roughness={0.55} />
+                <Box args={[0.3, 0.3, 0.12]} position={[0, 0.35, 0]} castShadow>
+                    <meshStandardMaterial color="#7c8694" metalness={0.2} roughness={0.55} />
+                </Box>
+                <Box args={[0.15, 0.15, 0.14]} position={[0, 0.35, 0]}>
+                    <meshStandardMaterial color={c} emissive={c} emissiveIntensity={0.5} toneMapped={false} />
+                </Box>
+                <Box args={[0.2, 0.1, 0.1]} position={[0.1, -0.15, 0]} castShadow>
+                    <meshStandardMaterial color={c} roughness={0.6} />
+                </Box>
+                <Box args={[0.2, 0.1, 0.1]} position={[0.1, -0.3, 0]} castShadow>
+                    <meshStandardMaterial color={c} roughness={0.6} />
                 </Box>
             </group>
         </group>
@@ -113,8 +110,6 @@ export const ForceField3D: React.FC<{ position: [number, number, number], color:
     const unlockProgress = useRef(isLocked ? 0 : 1);
 
     const shackleColorHex = '#E5C100'; 
-    const bodyTexture = useMemo(() => getMetalTexture(c), [c]);
-    const shackleTexture = useMemo(() => getMetalTexture(shackleColorHex), []);
 
     const bodyGeo = useMemo(() => {
         const shape = new THREE_LIB.Shape();
@@ -173,22 +168,22 @@ export const ForceField3D: React.FC<{ position: [number, number, number], color:
         <group position={position}>
             <group ref={groupRef} scale={0.7}> 
                 <mesh ref={bodyRef} geometry={bodyGeo} position={[0, 0.5, 0]} castShadow receiveShadow>
-                    <meshStandardMaterial map={bodyTexture} color={c} metalness={0.05} roughness={0.72} />
+                    <meshStandardMaterial color={c} metalness={0.15} roughness={0.7} />
                 </mesh>
                 
                 {/* Shackle Group */}
                 <group ref={shackleRef} position={[0, 0.71, 0]}>
                     <mesh rotation={[0, 0, 0]}>
                             <torusGeometry args={[0.15, 0.05, 6, 5, Math.PI]} />
-                            <meshStandardMaterial map={shackleTexture} color={shackleColorHex} metalness={0.08} roughness={0.55} flatShading />
+                            <meshStandardMaterial color={shackleColorHex} metalness={0.2} roughness={0.55} flatShading />
                     </mesh>
                     <mesh position={[-0.15, -0.12, 0]}>
                         <cylinderGeometry args={[0.05, 0.05, 0.25, 6]} />
-                        <meshStandardMaterial map={shackleTexture} color={shackleColorHex} metalness={0.08} roughness={0.55} flatShading />
+                        <meshStandardMaterial color={shackleColorHex} metalness={0.2} roughness={0.55} flatShading />
                     </mesh>
                     <mesh position={[0.15, -0.12, 0]}>
                         <cylinderGeometry args={[0.05, 0.05, 0.25, 6]} />
-                        <meshStandardMaterial map={shackleTexture} color={shackleColorHex} metalness={0.08} roughness={0.55} flatShading />
+                        <meshStandardMaterial color={shackleColorHex} metalness={0.2} roughness={0.55} flatShading />
                     </mesh>
                 </group>
 
@@ -208,53 +203,38 @@ export const ForceField3D: React.FC<{ position: [number, number, number], color:
     );
 };
 
-// The instant-fail hazard is now a "DEBT TRAP": a dark-red money sack with a lit
-// fuse — a bad money decision about to blow up your savings. Clearly money AND
-// clearly dangerous, and visually distinct from the gold-coin collectible
-// (red & grounded with a sparking fuse vs gold & floating & spinning).
 export const Bomb: React.FC<{ position: [number, number, number], seed?: number }> = ({ position, seed = 0 }) => {
     const ref = useRef<THREE_LIB.Group>(null);
-    const sparkRef = useRef<THREE_LIB.Mesh>(null);
-    const texture = useMemo(() => getMatteTexture('#6b1f1f'), []);
-
+    const texture = useMemo(() => getBombTexture('#2c3e50'), []);
+    const capTexture = useMemo(() => getMatteTexture('#ef4444'), []); 
+    
     const rotationY = useMemo(() => {
         let rand = seed === 0 ? coordRandom(position[0], position[2]) : Math.abs(Math.sin(seed * 9999)) % 1;
         return rand * Math.PI * 2;
     }, [position, seed]);
 
-    useFrame((state) => {
-        if (ref.current) {
-            const t = state.clock.elapsedTime;
-            ref.current.scale.setScalar(1.0 + Math.sin(t * 8) * 0.04);
-            ref.current.rotation.y = Math.sin(t * 0.9) * 0.22; // gentle look-around — keeps the cute face forward
-            ref.current.rotation.z = Math.sin(t * 6) * 0.05;
-        }
-        if (sparkRef.current) {
-            const t = state.clock.elapsedTime;
-            sparkRef.current.scale.setScalar(0.8 + Math.abs(Math.sin(t * 14)) * 0.6);
+    useFrame((state) => { 
+        if(ref.current) { 
+            const t = state.clock.elapsedTime; 
+            const scale = 1.0 + Math.sin(t * 10) * 0.03;
+            ref.current.scale.setScalar(scale);
+            ref.current.rotation.y = rotationY + t * 0.5; 
+            ref.current.rotation.z = Math.sin(t * 15) * 0.05;
         }
     });
-
+    
     return (
-        <group position={[position[0], 0.32, position[2]]} ref={ref}>
-            {/* Cute round bomb — a soft matte-dark ball; the lit spark is the one danger glow. */}
-            <mesh castShadow receiveShadow scale={[1, 1.02, 1]}>
-                <sphereGeometry args={[0.27, 22, 18]} />
-                <meshStandardMaterial map={texture} color="#2b2b36" roughness={0.62} metalness={0.08} />
+        <group position={[position[0], 0.35, position[2]]} ref={ref}>
+            <mesh castShadow receiveShadow>
+                <dodecahedronGeometry args={[0.25, 0]} />
+                <meshStandardMaterial map={texture} color="#34495e" roughness={0.7} />
+                <Edges threshold={15} color="#111" />
             </mesh>
-            {/* simple geometric eyes — the SAME single matte dot as the character, but
-                light so they read on the dark bomb (a watchful little hazard). No glossy
-                shine, no sclera / pupils / sparkle — matches the unified low-poly look. */}
-            <group position={[0, 0.02, 0.247]}>
-                <RoundedBox args={[0.056, 0.074, 0.02]} radius={0.025} smoothness={4} position={[0.07, 0, 0]}><meshStandardMaterial color="#eaeaf0" roughness={0.6} metalness={0} /></RoundedBox>
-                <RoundedBox args={[0.056, 0.074, 0.02]} radius={0.025} smoothness={4} position={[-0.07, 0, 0]}><meshStandardMaterial color="#eaeaf0" roughness={0.6} metalness={0} /></RoundedBox>
-            </group>
-            {/* fuse cap + fuse */}
-            <mesh position={[0, 0.26, 0]} castShadow><cylinderGeometry args={[0.055, 0.075, 0.06, 12]} /><meshStandardMaterial color="#3a3a46" roughness={0.7} /></mesh>
-            <mesh position={[0.05, 0.35, 0]} rotation={[0, 0, -0.5]} castShadow><cylinderGeometry args={[0.014, 0.014, 0.14, 6]} /><meshStandardMaterial color="#8a6a44" roughness={1} /></mesh>
-            {/* BIG cute spark + soft glow halo */}
-            <mesh ref={sparkRef} position={[0.11, 0.44, 0]}><sphereGeometry args={[0.075, 12, 12]} /><meshStandardMaterial color="#fff4b0" emissive="#ff8a00" emissiveIntensity={3.5} toneMapped={false} /></mesh>
-            <mesh position={[0.11, 0.44, 0]}><sphereGeometry args={[0.13, 10, 10]} /><meshStandardMaterial color="#ffb733" emissive="#ff7a00" emissiveIntensity={1.3} toneMapped={false} transparent opacity={0.28} depthWrite={false} /></mesh>
+            <mesh position={[0, 0.22, 0]} castShadow>
+                <cylinderGeometry args={[0.1, 0.12, 0.08, 6]} />
+                <meshStandardMaterial map={capTexture} color="#ef4444" roughness={0.4} />
+                <Edges threshold={15} color="#300" />
+            </mesh>
         </group>
     );
 };
@@ -294,7 +274,7 @@ export const CosmicPortal: React.FC<{ position: [number, number, number], color:
                     <group position={[0, 0.03, 0]}>
                         <mesh rotation={[-Math.PI / 2, 0, 0]}>
                             <torusGeometry args={[0.35, 0.04, 16, 32]} />
-                            <meshStandardMaterial color={color} emissive={color} emissiveIntensity={emissiveInt} toneMapped={false} roughness={0.65} metalness={0.05} />
+                            <meshStandardMaterial color={color} emissive={color} emissiveIntensity={emissiveInt} toneMapped={false} roughness={0.4} metalness={0.1} />
                         </mesh>
                     </group>
                 </group>
@@ -318,19 +298,19 @@ export const CosmicPortal: React.FC<{ position: [number, number, number], color:
                 <group position={[0, 0.05, 0]}>
                     <mesh position={[0, 0, 0.25]}>
                         <boxGeometry args={[0.6, 0.05, 0.1]} />
-                        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={emissiveInt} toneMapped={false} roughness={0.65} metalness={0.05} />
+                        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={emissiveInt} toneMapped={false} roughness={0.4} metalness={0.1} />
                     </mesh>
                     <mesh position={[0, 0, -0.25]}>
                         <boxGeometry args={[0.6, 0.05, 0.1]} />
-                        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={emissiveInt} toneMapped={false} roughness={0.65} metalness={0.05} />
+                        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={emissiveInt} toneMapped={false} roughness={0.4} metalness={0.1} />
                     </mesh>
                     <mesh position={[0.25, 0, 0]} rotation={[0, Math.PI / 2, 0]}>
                         <boxGeometry args={[0.6, 0.05, 0.1]} />
-                        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={emissiveInt} toneMapped={false} roughness={0.65} metalness={0.05} />
+                        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={emissiveInt} toneMapped={false} roughness={0.4} metalness={0.1} />
                     </mesh>
                     <mesh position={[-0.25, 0, 0]} rotation={[0, Math.PI / 2, 0]}>
                         <boxGeometry args={[0.6, 0.05, 0.1]} />
-                        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={emissiveInt} toneMapped={false} roughness={0.65} metalness={0.05} />
+                        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={emissiveInt} toneMapped={false} roughness={0.4} metalness={0.1} />
                     </mesh>
                 </group>
             </group>
@@ -338,31 +318,4 @@ export const CosmicPortal: React.FC<{ position: [number, number, number], color:
     );
 };
 
-// A floating, glowing "$" beacon that hovers over a teleporter pad — reframing
-// the warp as a MONEY TRANSFER point (wire/ATM): step in here, your money
-// (and you) move instantly to the linked pad.
-const TransferEmblem: React.FC<{ position: [number, number, number], color: string }> = ({ position, color }) => {
-    const ref = useRef<THREE_LIB.Group>(null);
-    useFrame((state) => {
-        if (ref.current) {
-            ref.current.rotation.y += 0.02;
-            ref.current.position.y = 0.6 + Math.sin(state.clock.elapsedTime * 2) * 0.07;
-        }
-    });
-    const matProps = { color, emissive: color, emissiveIntensity: 2.2, toneMapped: false, roughness: 0.65, metalness: 0.05 };
-    return (
-        <group position={[position[0], 0.6, position[2]]} ref={ref} scale={0.5}>
-            <mesh><boxGeometry args={[0.07, 0.5, 0.07]} /><meshStandardMaterial {...matProps} /></mesh>
-            <mesh position={[0, 0.17, 0]}><boxGeometry args={[0.32, 0.08, 0.07]} /><meshStandardMaterial {...matProps} /></mesh>
-            <mesh position={[0, 0, 0]}><boxGeometry args={[0.32, 0.08, 0.07]} /><meshStandardMaterial {...matProps} /></mesh>
-            <mesh position={[0, -0.17, 0]}><boxGeometry args={[0.32, 0.08, 0.07]} /><meshStandardMaterial {...matProps} /></mesh>
-        </group>
-    );
-};
-
-export const Teleporter: React.FC<{ position: [number, number, number], color: string }> = ({ position, color }) => (
-    <group>
-        <CosmicPortal position={position} color={color} isOpen={true} scale={0.5} shape="square" />
-        <TransferEmblem position={position} color={color} />
-    </group>
-);
+export const Teleporter: React.FC<{ position: [number, number, number], color: string }> = ({ position, color }) => { return <CosmicPortal position={position} color={color} isOpen={true} scale={0.5} shape="square" />; };

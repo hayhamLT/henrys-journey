@@ -3,7 +3,6 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { App } from './App';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import { CharacterPreview } from './components/CharacterPreview';
 import './types'; // Ensure types are loaded
 
 const reloadOnAssetFailure = async () => {
@@ -60,11 +59,10 @@ if ('serviceWorker' in navigator) {
 }
 
 const root = ReactDOM.createRoot(rootElement);
-const isCharPreview = new URLSearchParams(window.location.search).has('charpreview');
 root.render(
   <React.StrictMode>
       <ErrorBoundary label="root">
-        {isCharPreview ? <CharacterPreview /> : <App />}
+        <App />
       </ErrorBoundary>
   </React.StrictMode>
 );
