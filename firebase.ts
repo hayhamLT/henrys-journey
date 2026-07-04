@@ -227,7 +227,7 @@ export const subscribeAuth = (callback: (user: any) => void) => {
         callback(null);
         return () => {};
     }
-    return onAuthStateChanged(auth, (user) => {
+    return onAuthStateChanged(auth, (user: any) => {
         if (user && db) {
              const userDocRef = doc(db, 'users', user.uid);
              getDoc(userDocRef).then(snap => {
