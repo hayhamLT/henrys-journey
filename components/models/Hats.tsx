@@ -17,6 +17,7 @@ export const VoxelHat: React.FC<{ id: HatId, clippingPlanes?: THREE.Plane[], isG
             case 'sombrero':
             case 'cowboy':
             case 'tophat':
+            case 'graduation':
                 return 'cloth';
             default: return 'matte';
         }
@@ -62,6 +63,15 @@ export const VoxelHat: React.FC<{ id: HatId, clippingPlanes?: THREE.Plane[], isG
             case 'glasses': return <group position={[0, -0.14, 0.17]}><Box args={[0.32, 0.08, 0.04]}>{m.black}</Box><Box args={[0.04, 0.04, 0.2]} position={[0.16, 0, -0.1]}>{m.black}</Box><Box args={[0.04, 0.04, 0.2]} position={[-0.16, 0, -0.1]}>{m.black}</Box></group>;
             case 'beanie': return <group position={[0, 0.06, 0]}><Box args={[0.32, 0.12, 0.32]}>{m.darkBlue}</Box><Box args={[0.28, 0.08, 0.28]} position={[0, 0.1, 0]}>{m.darkBlue}</Box><Box args={[0.08, 0.08, 0.08]} position={[0, 0.16, 0]}>{m.white}</Box></group>;
             case 'sombrero': return <group position={[0, 0.1, 0]}><Box args={[0.6, 0.04, 0.6]} position={[0, -0.08, 0]}>{m.orange}</Box><Box args={[0.3, 0.25, 0.3]} position={[0, 0.05, 0]}>{m.orange}</Box><Box args={[0.2, 0.1, 0.2]} position={[0, 0.2, 0]}>{m.orange}</Box></group>;
+            // Graduation cap — mortarboard + gold button + dangling tassel. A
+            // financial-LITERACY nod: this world is about learning to be smart with money.
+            case 'graduation': return <group position={[0, 0.06, 0]}>
+                <Box args={[0.24, 0.1, 0.24]}>{m.black}</Box>
+                <Box args={[0.44, 0.03, 0.44]} position={[0, 0.065, 0]}>{m.black}</Box>
+                <Box args={[0.05, 0.05, 0.05]} position={[0, 0.09, 0]}>{m.gold}</Box>
+                <Box args={[0.02, 0.16, 0.02]} position={[0.19, 0.0, 0.19]}>{m.gold}</Box>
+                <Box args={[0.05, 0.04, 0.05]} position={[0.19, -0.09, 0.19]}>{m.gold}</Box>
+            </group>;
             default: return null;
         }
     }

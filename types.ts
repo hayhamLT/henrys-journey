@@ -351,7 +351,7 @@ export interface ThoughtBubble {
 
 export type EyeState = 'default' | 'win' | 'angry' | 'scared' | 'destroyed' | 'confused' | 'sleeping' | 'love';
 
-export type HatId = 'none' | 'cone' | 'tophat' | 'crown' | 'banana' | 'propeller' | 'viking' | 'chef' | 'cowboy' | 'wizard' | 'headphones' | 'cap' | 'hardhat' | 'glasses' | 'beanie' | 'sombrero';
+export type HatId = 'none' | 'cone' | 'tophat' | 'crown' | 'banana' | 'propeller' | 'viking' | 'chef' | 'cowboy' | 'wizard' | 'headphones' | 'cap' | 'hardhat' | 'glasses' | 'beanie' | 'sombrero' | 'graduation';
 
 export interface Hat {
   id: HatId;

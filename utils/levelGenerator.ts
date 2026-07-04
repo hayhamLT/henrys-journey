@@ -5,7 +5,7 @@ import { simulateGame } from './simulation';
 import { WORLDS, POINTS, LEVELS_PER_WORLD, TOTAL_LEVELS } from '../constants/game';
 import { TUTORIAL_LEVELS } from '../constants/levels';
 import { isMoneyLevel, moneyLessonIndex, MONEY_LESSONS, MONEY_LESSON_DIFFICULTY, MONEY_WORLD, moneyLessonObjective } from '../constants/finlit';
-import { random } from './random';
+import { random, setSeed } from './random';
 
 // --- Configuration ---
 
@@ -423,13 +423,19 @@ const pruneMeaninglessMechanics = (
         getNeighbors(p, grid.length, grid[0].length).forEach(n => nearPathSet.add(`${n.row},${n.col}`));
     }
 
-    for (const pair of portals) {
+    for (let i = portals.length - 1; i >= 0; i--) {
+        const pair = portals[i];
         const keyA = `${pair.A.row},${pair.A.col}`;
         const keyB = `${pair.B.row},${pair.B.col}`;
         const used = pathSet.has(keyA) || pathSet.has(keyB);
         if (!used) {
             grid[pair.A.row][pair.A.col] = CellType.Empty;
             grid[pair.B.row][pair.B.col] = CellType.Empty;
+            // CRITICAL: drop the pair from the portals array too. Every later
+            // block traces the solution with this array — a pruned pair left in
+            // it makes traceSolutionPath "teleport" through plain floor, so
+            // wants/scams/tolls get placed relative to a phantom route.
+            portals.splice(i, 1);
         }
     }
 
@@ -903,6 +909,11 @@ export const attemptGenerateLevel = (levelIdx: number, customRows?: number, cust
                 grid[w.row][w.col] = wOrig; // revert — no want this level
             }
         }
+        // VERB INVARIANT (strict attempts): world 1's lesson IS the want — a
+        // board without one teaches nothing, so reject the candidate and let
+        // the search roll another layout. The relaxed fallback may still ship
+        // without it so a level always loads.
+        if (!relaxed && !walletConfig) return null;
     }
 
     // The Abyss (world 2) — "Compare your choices": the teleporter must be a
@@ -912,7 +923,11 @@ export const attemptGenerateLevel = (levelIdx: number, customRows?: number, cust
     // exist AND be clearly longer; otherwise there is no comparison — reject the
     // candidate so generateBestCandidate tries another layout.
     if (!finalSolve.path) return null; // re-narrow after the want block may have re-adopted the solve
-    if (!relaxed && worldGate(worldIdx).compareRoutes && portals.length > 0) {
+    if (!relaxed && worldGate(worldIdx).compareRoutes) {
+        // VERB INVARIANT: world 2's lesson IS the teleporter shortcut. pruning now
+        // splices unused pairs out of `portals`, so length 0 = no shortcut survived
+        // on the route → reject (this used to silently ship portal-less W2 boards).
+        if (portals.length === 0) return null;
         const walkGrid = grid.map(row => row.map(c => isPortalCell(c) ? CellType.Empty : c));
         const walkSolve = solve({ grid: walkGrid, start, end: start, circuitLinks }, { requireAllGems: true });
         const portalLen = finalSolve.path.length;
@@ -973,6 +988,9 @@ export const attemptGenerateLevel = (levelIdx: number, customRows?: number, cust
                 }
             }
         }
+        // VERB INVARIANT (strict attempts): a world-3 board with nothing to
+        // inspect skips the "spot the money trap" lesson — reject it.
+        if (!relaxed && !disguised) return null;
     }
 
     // Snowy Peak (world 4) — "Don't waste it": a draining PURSE. It loses a coin
@@ -1023,8 +1041,10 @@ export const attemptGenerateLevel = (levelIdx: number, customRows?: number, cust
             p.row >= 0 && p.row < rows && p.col >= 0 && p.col < cols &&
             grid[p.row][p.col] === CellType.Empty && !(p.row === start.row && p.col === start.col));
         if (onPathEmpties.length > 0) {
-            shuffle(onPathEmpties);
-            const g = onPathEmpties[0];
+            // Place the gem EARLY on the route (first third): the naive path now
+            // grabs it green, so a ripe grab requires genuinely re-sequencing the
+            // tour (do other work first) — not just idling next to a late gem.
+            const g = onPathEmpties[Math.floor(random() * Math.max(1, Math.ceil(onPathEmpties.length / 3)))];
             grid[g.row][g.col] = CellType.Package_Savings;
             // The savings gem is now a REQUIRED collectible; re-solve and ADOPT that
             // path as the solution so it provably collects the gem (on portal-heavy
@@ -1037,6 +1057,8 @@ export const attemptGenerateLevel = (levelIdx: number, customRows?: number, cust
                 grid[g.row][g.col] = CellType.Empty; // revert — no savings gem this level
             }
         }
+        // VERB INVARIANT (strict attempts): no savings gem = no saving lesson.
+        if (!relaxed && !growConfig) return null;
     }
 
     if (!finalSolve.path) return null; // re-narrow after the grow block may have re-adopted the solve
@@ -1067,14 +1089,21 @@ export const attemptGenerateLevel = (levelIdx: number, customRows?: number, cust
             // already includes the multi-objective bonus the final level will carry.
             // The goal is then one inflation-gap (~27) below it (margin 18), so the
             // fresh solution clears it but letting any one coin go stale drops under.
-            const tempLevel: Level = { grid, start, end: start, circuitLinks, par: par0, timeLimit: Math.ceil(par0 * 1.5) + 15, inflateAt: T, objective: { type: 'min_score', minScore: 1 } };
-            const sim = simulateGame(grid, start, moveSeq, tempLevel, 0);
+            const inflTimeLimit = Math.ceil(par0 * 1.5) + 15;
+            const tempLevel: Level = { grid, start, end: start, circuitLinks, par: par0, timeLimit: inflTimeLimit, inflateAt: T, objective: { type: 'min_score', minScore: 1 } };
+            // Calibrate at levelTime = timeLimit (ZERO time bonus): the goal must
+            // be clearable by a kid who plans slowly — the timer ticks while they
+            // think. Fresh-vs-stale (~27/coin) still dwarfs the 18-point margin,
+            // so letting a coin go stale still drops you under the goal.
+            const sim = simulateGame(grid, start, moveSeq, tempLevel, inflTimeLimit);
             if (sim.outcome.success && sim.outcome.finalResult) {
                 inflateConfig = { inflateAt: T, minScore: Math.max(1, sim.outcome.finalResult.scoreBreakdown.total - 18) };
             } else {
                 for (let k = 0; k < n; k++) grid[earlyEmpties[k].row][earlyEmpties[k].col] = CellType.Empty; // revert
             }
         }
+        // VERB INVARIANT (strict attempts): no fresh coins = no inflation lesson.
+        if (!relaxed && !inflateConfig) return null;
     }
 
     // Lost Temple (world 7) — "Balancing your money": place 2-3 priced TOLL gates,
@@ -1090,6 +1119,7 @@ export const attemptGenerateLevel = (levelIdx: number, customRows?: number, cust
         const convertible = (r: number, c: number) =>
             r >= 0 && r < rows && c >= 0 && c < cols && !used.has(`${r},${c}`) &&
             (grid[r][c] === CellType.Empty || grid[r][c] === CellType.Wall);
+        const TOLL_PRICES = [3, 2, 4]; // varied — so "which toll to skip" is a real comparison
         for (const p of pathCells) {
             if (Object.keys(tolls).length >= 3) break;
             for (const a of getNeighbors(p, rows, cols)) {
@@ -1099,7 +1129,7 @@ export const attemptGenerateLevel = (levelIdx: number, customRows?: number, cust
                     const aOrig = grid[a.row][a.col], bOrig = grid[b.row][b.col]; // may be Wall
                     grid[a.row][a.col] = CellType.Toll_Gate;
                     grid[b.row][b.col] = CellType.Boost;
-                    tolls[`${a.row},${a.col}`] = 3;
+                    tolls[`${a.row},${a.col}`] = TOLL_PRICES[Object.keys(tolls).length % TOLL_PRICES.length];
                     used.add(`${a.row},${a.col}`); used.add(`${b.row},${b.col}`);
                     placedCells.push({ row: a.row, col: a.col, orig: aOrig }, { row: b.row, col: b.col, orig: bOrig });
                     break; // one toll per path cell
@@ -1108,11 +1138,30 @@ export const attemptGenerateLevel = (levelIdx: number, customRows?: number, cust
         }
         const n = Object.keys(tolls).length;
         if (n >= 2) {
-            // Budget funds n-1 of the n tolls (each costs 3) — never all of them.
-            tollConfig = { startWallet: 3 * (n - 1), tollPrices: tolls };
+            // Prices vary (2/3/4) and the budget covers everything EXCEPT the
+            // priciest toll. The kid can buy all-but-one bonus, and the best plan
+            // is computable — skip the worst deal — so the allocation is a real
+            // comparison, not an arbitrary pick among identical tolls.
+            const prices = Object.values(tolls);
+            const budget = prices.reduce((s, v) => s + v, 0) - Math.max(...prices);
+            // The solver never models tolls, so this block used to be the ONE
+            // escape from the verify-or-revert rule. Re-simulate the certified
+            // solution with the toll economics live: if it crosses a toll it
+            // can't afford (e.g. after a divergent path trace), the level would
+            // ship hard-broke — revert instead of shipping it.
+            const moveSeq = (finalSolve.path as Move[]).map((m, idx) => ({ move: m, id: idx }));
+            const tollProbe: Level = { grid, start, end: start, circuitLinks, par: finalSolve.path.length, timeLimit: Math.ceil(finalSolve.path.length * 1.5) + 15, startWallet: budget, tollPrices: tolls };
+            const tollSim = simulateGame(grid, start, moveSeq, tollProbe, 0);
+            if (tollSim.outcome.success) {
+                tollConfig = { startWallet: budget, tollPrices: tolls };
+            } else {
+                for (const c of placedCells) grid[c.row][c.col] = c.orig; // revert — certified path hit a toll
+            }
         } else {
             for (const c of placedCells) grid[c.row][c.col] = c.orig; // revert to original (Wall/Empty)
         }
+        // VERB INVARIANT (strict attempts): no tolls = no budgeting lesson.
+        if (!relaxed && !tollConfig) return null;
     }
 
     // Volcanic Isles (world 8) — "Managing risk / emergency fund": put a SHOCK on
@@ -1148,15 +1197,38 @@ export const attemptGenerateLevel = (levelIdx: number, customRows?: number, cust
                 }
             }
         }
+        // VERB INVARIANT (strict attempts): no shock+liquid = no emergency-fund lesson.
+        if (!relaxed && !reserveConfig) return null;
     }
 
     if (!finalSolve.path) return null; // re-narrow after any block re-adopted the solve
     const pathLength = finalSolve.path.length;
     const baselineTimeLimit = Math.ceil(pathLength * 1.5) + 15;
-    const baselineMoveBonus = POINTS.par_met_bonus;
-    const baselineTimeBonus = Math.max(0, Math.floor((baselineTimeLimit - pathLength) * POINTS.per_second_saved_bonus));
-    const baselineGemScore = config.gemCount * POINTS.gem_value;
-    const baselineScore = baselineGemScore + POINTS.level_clear_base + baselineMoveBonus + baselineTimeBonus;
+
+    // Score objectives are calibrated against a SIMULATED run of the certified
+    // solution at levelTime = timeLimit — i.e. ZERO time bonus. The timer ticks
+    // while a kid plans, so any goal that bakes in the time bonus is unwinnable
+    // for slow planners (this shipped as 7% of the campaign, 40% of world 7).
+    // Simulating (instead of the old analytic estimate) also prices in every
+    // wallet mechanic — drains, tolls, savings growth, inflation — automatically.
+    // (Generalizes the W6 simulate-and-calibrate pattern to all objectives.)
+    const calibLevel: Level = {
+        grid, start, end: start, circuitLinks, par: pathLength, timeLimit: baselineTimeLimit,
+        ...(walletConfig ?? {}),
+        ...(growConfig ?? {}),
+        ...(inflateConfig ? { inflateAt: inflateConfig.inflateAt } : {}),
+        ...(tollConfig ? { startWallet: tollConfig.startWallet, tollPrices: tollConfig.tollPrices } : {}),
+        ...(reserveConfig ? { startWallet: reserveConfig.startWallet } : {}),
+    };
+    const calibSeq = (finalSolve.path as Move[]).map((m, idx) => ({ move: m, id: idx }));
+    const calibSim = simulateGame(grid, start, calibSeq, calibLevel, baselineTimeLimit);
+    if (!calibSim.outcome.success || !calibSim.outcome.finalResult) {
+        // The certified solution must clear its own level — a failure here means
+        // some mechanic broke it; reject rather than ship a suspect board.
+        if (!relaxed) return null;
+    }
+    const pessimisticScore = calibSim.outcome.finalResult?.scoreBreakdown.total
+        ?? (config.gemCount * POINTS.gem_value + POINTS.level_clear_base + POINTS.par_met_bonus);
 
     const archetype = getLevelArchetype(levelIdx);
     const gate = worldGate(worldIdx);
@@ -1171,13 +1243,14 @@ export const attemptGenerateLevel = (levelIdx: number, customRows?: number, cust
     // longer hand out collect_ratio goals that would let players skip pickups.
     const tightMoves = pathLength + (random() < 0.5 ? 0 : 1);
     const scoreGoal = (mul: number, floor: number): Level['objective'] =>
-        ({ type: 'min_score', minScore: Math.max(floor, Math.floor(baselineScore * mul)) });
+        ({ type: 'min_score', minScore: Math.max(floor, Math.floor(pessimisticScore * mul)) });
 
     if (growConfig) {
-        // Crystal Caves grow levels: NO move/time objective — pressuring speed would
-        // directly contradict "let your savings grow" (waiting costs moves). Patience
-        // is the lesson, so these levels carry no efficiency constraint.
-        objective = undefined;
+        // Crystal Caves grow levels: no SCORE/TIME pressure (that would contradict
+        // "let your savings grow"), but a LOOSE move budget bounds the old stall
+        // exploit — pacing in place forever is no longer free; RE-SEQUENCING the
+        // tour is how you ripen the gem. The stored solution always fits.
+        objective = { type: 'max_moves', maxMoves: pathLength + Math.max(3, Math.ceil(pathLength * 0.6)) };
     } else if (inflateConfig) {
         // Sunset Shores: the savings GOAL is a min_score set just below a fresh-grab
         // run's score (computed at gen time), so it is always reachable but letting
@@ -1192,9 +1265,12 @@ export const attemptGenerateLevel = (levelIdx: number, customRows?: number, cust
         // the collect-all rule by setting no objective here.
         objective = { type: 'collect_ratio', ratio: 0.25 };
     } else if (gate.comboObjective && random() < 0.55) {
-        // "Balance everything": collect all (implicit) + stay under moves + hit score.
-        const objectiveBonusEstimate = Math.floor(baselineScore * 0.24);
-        const minScore = Math.max(80, Math.floor((baselineScore + objectiveBonusEstimate) * 0.9));
+        // "Balance everything": collect all (implicit) + stay under moves + hit
+        // score. The gate is 90% of the PESSIMISTIC (zero-time-bonus) run; the
+        // real run also earns the multi-objective bonus on top, so even a slow
+        // planner clears it with headroom — speed is the medals' job, not the
+        // win condition's.
+        const minScore = Math.max(80, Math.floor(pessimisticScore * 0.9));
         objective = {
             type: 'combo',
             objectives: [
@@ -1234,30 +1310,49 @@ export const attemptGenerateLevel = (levelIdx: number, customRows?: number, cust
 // maze roll. `genIdx` controls the layout/mechanic budget; `targetIdx` controls
 // the difficulty band (they're equal for the campaign, but Money Mountain maps
 // its lessons onto gentle campaign-equivalent bands).
+// Fixed salt so every campaign board is REPRODUCIBLE: level N is the same board
+// for every kid, every session, every retry — bug reports become reproducible,
+// retries stop silently swapping the puzzle, and the background preloader can no
+// longer shift the RNG stream under a level load. (Daily/coop/tournament seed
+// themselves per mode before calling attemptGenerateLevel directly.)
+const CAMPAIGN_SALT = 0x51ED0;
+
 const generateBestCandidate = async (genIdx: number, targetIdx: number): Promise<Level | null> => {
     const target = difficultyTarget(targetIdx);
     let best: Level | null = null;
     let bestDelta = Infinity;
     const startMs = Date.now();
     for (let i = 0; i < 80; i++) {
+        setSeed(CAMPAIGN_SALT + genIdx * 9973 + i * 101);
         const level = attemptGenerateLevel(genIdx);
         if (level) {
             const delta = Math.abs(measureDifficulty(level) - target);
             if (delta < bestDelta) { best = level; bestDelta = delta; }
-            if (bestDelta <= 2) break;            // close enough — stay snappy
-            if (best && i >= 24) break;           // good-enough after a real sample
+            if (bestDelta <= 3) break;            // close enough — stay snappy
+            if (best && i >= 16) break;           // good-enough after a real sample
         }
-        // Wall-clock budget: heavy late-world layouts (many collectibles + portals)
-        // make each candidate's solve slow, so cap the search once we have a usable
-        // level rather than letting a level load drag on for seconds.
-        if (best && Date.now() - startMs > 1500) break;
+        // Wall-clock budget: heavy late-world layouts (many collectibles + portals
+        // + per-candidate calibration/toll re-sims) make each candidate slow, so
+        // cap the search once we have a usable level rather than dragging on.
+        if (best && Date.now() - startMs > 1200) break;
+        // HARD cap even with no candidate yet: the verb invariants can make a
+        // stubborn index reject every strict attempt, and without this the loop
+        // would burn all 80 heavy solves (seen: a 9.8s load). Bail to the relaxed
+        // fallback instead of hanging the level transition.
+        if (!best && Date.now() - startMs > 2500) break;
         await new Promise(r => setTimeout(r, 0));
     }
     // Fallback: if strict per-world checks (e.g. the W2 shortcut requirement)
     // rejected every candidate, generate a relaxed one so a level ALWAYS loads.
-    for (let i = 0; i < 24 && !best; i++) {
+    for (let i = 0; i < 24 && !best && Date.now() - startMs < 4000; i++) {
+        setSeed(CAMPAIGN_SALT + genIdx * 9973 + 7919 + i * 101);
         best = attemptGenerateLevel(genIdx, undefined, undefined, true);
+        if (best) console.warn(`[levelGen] relaxed fallback used for level ${genIdx} (attempt ${i}) — verb guarantees may be loosened`);
     }
+    // NOTE: a rare heavy W7-class solve can still make a single candidate take
+    // multiple seconds (solver O(n) queue vs 90k node cap — see audit roadmap #9,
+    // a dedicated solver-perf pass). The 1s background preloader hides this in
+    // sequential play; loadLevel's null-fallback covers the (bounded) worst case.
     return best;
 };
 

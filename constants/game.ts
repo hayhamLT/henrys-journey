@@ -93,10 +93,10 @@ const WORLD_DEFS: Omit<World, 'levels'>[] = [
     gimmickDescription: 'Big prizes need several keys — gather each one to reach the goal.',
     introBanner: 'New gimmick: layered locks chain several key colors into one puzzle.',
     moneyConcept: {
-      emoji: '🏆',
-      title: 'Saving for Big Goals',
-      lesson: 'Big goals take more than one step. Collect each key in turn to unlock something bigger.',
-      mission: 'Several locks guard the prize. Gather every key to reach the big goal.',
+      emoji: '🌱',
+      title: 'Let It Grow',
+      lesson: 'Some money grows the longer you wait. A little patience can turn into a bigger reward.',
+      mission: 'Spot the glowing green gem — it grows in value the longer you leave it. Save it for last!',
     },
   },
   {
@@ -108,10 +108,10 @@ const WORLD_DEFS: Omit<World, 'levels'>[] = [
     gimmickDescription: 'Aim for a savings goal — earn enough coins, not just finish.',
     introBanner: 'New gimmick: score targets turn side pickups into part of the solution.',
     moneyConcept: {
-      emoji: '🎯',
-      title: 'Reach Your Goal',
-      lesson: "A savings goal is a number you aim for. Earn enough — don't stop a coin short!",
-      mission: 'Hit the score goal! Grab bonus pickups to reach your savings target.',
+      emoji: '⏳',
+      title: 'Prices Change Fast',
+      lesson: "Money doesn't always keep its value. Grab a good deal FRESH — wait too long and it's worth less.",
+      mission: 'That coin is worth more right now than later — grab fresh coins fast before they go stale!',
     },
   },
   {
@@ -123,10 +123,10 @@ const WORLD_DEFS: Omit<World, 'levels'>[] = [
     gimmickDescription: 'Earn enough, stay efficient, and leave nothing behind — all at once.',
     introBanner: 'New gimmick: combo missions demand clean execution on every objective.',
     moneyConcept: {
-      emoji: '⚖️',
-      title: 'Balancing Your Money',
-      lesson: 'Real skill is doing it all at once: earn enough, stay efficient, and miss nothing.',
-      mission: 'Juggle every goal at once — collect all, hit the score, stay under your move budget.',
+      emoji: '🚧',
+      title: 'Pay As You Go',
+      lesson: "Some routes cost money to use. Budget for tolls so you don't run out of coins before the finish.",
+      mission: 'Toll gates charge coins to pass. Plan your route so your budget covers every toll.',
     },
   },
   {

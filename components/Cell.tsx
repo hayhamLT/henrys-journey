@@ -182,16 +182,18 @@ const Cell: React.FC<CellProps> = (props) => {
               <meshStandardMaterial color="#ef4444" emissive="#b91c1c" emissiveIntensity={0.45} opacity={0.85} transparent />
             </mesh>
             <mesh position={[0,0.11,0]} rotation={[Math.PI/2 - 0.45, 0, 0.3]}>
-              <cylinderGeometry args={[0.27, 0.27, 0.06, 18]} />
+              <cylinderGeometry args={[0.27, 0.27, 0.06, 8]} />
               <meshStandardMaterial color="#FFD24A" metalness={0.06} roughness={0.5} emissive="#7a2a00" emissiveIntensity={0} />
             </mesh>
           </group>
         )}
         {isBoost && (
-          /* Bonus / interest token: a green "+" coin — extra money for a detour. */
-          <group position={[0,0.34,0]}>
+          /* Bonus / interest token: a green "+" coin — extra money for a detour.
+             Hides once collected (it's tracked in collectedPackages, same as any
+             pickup) — the missing visible gate was why it never disappeared. */
+          <group position={[0,0.34,0]} visible={!isPackageCollected}>
             <mesh rotation={[Math.PI/2, 0, 0]}>
-              <cylinderGeometry args={[0.28, 0.28, 0.08, 18]} />
+              <cylinderGeometry args={[0.28, 0.28, 0.08, 8]} />
               <meshStandardMaterial color="#34d399" metalness={0.05} roughness={0.55} emissive="#10b981" emissiveIntensity={0.4} toneMapped={false} />
             </mesh>
             <mesh position={[0,0,0.05]}>
@@ -205,21 +207,24 @@ const Cell: React.FC<CellProps> = (props) => {
           </group>
         )}
         {isWant && (
-          /* Impulse-buy "WANT": a glossy pink shopping bag on a WALKABLE tile.
+          /* Impulse-buy "WANT": a little pink SHOPPING BAG on a WALKABLE tile.
              Stepping it drains the run wallet (W1). PINK = a want that costs you. */
-          <group position={[0, 0.3, 0]}>
-            <mesh position={[0, 0, 0]}>
-              <boxGeometry args={[0.34, 0.34, 0.22]} />
-              <meshStandardMaterial color="#f4609f" roughness={0.5} metalness={0} emissiveIntensity={0} toneMapped={false} />
+          <group position={[0, 0.26, 0]}>
+            {/* bag body */}
+            <mesh position={[0, 0, 0]} castShadow>
+              <boxGeometry args={[0.3, 0.32, 0.2]} />
+              <meshStandardMaterial color="#f4609f" roughness={0.55} metalness={0} />
             </mesh>
-            <mesh position={[0, 0.2, 0]}>
-              <boxGeometry args={[0.38, 0.06, 0.26]} />
+            {/* folded top rim, slightly wider */}
+            <mesh position={[0, 0.17, 0]}>
+              <boxGeometry args={[0.34, 0.06, 0.24]} />
               <meshStandardMaterial color="#d6457f" roughness={0.55} />
             </mesh>
-            <mesh position={[0, 0.27, 0]}>
-              <torusGeometry args={[0.09, 0.018, 8, 18]} />
-              <meshStandardMaterial color="#ffffff" emissive="#ffd1e6" emissiveIntensity={0.4} toneMapped={false} />
-            </mesh>
+            {/* two handle arches (front + back) */}
+            <mesh position={[0, 0.22, 0.07]}><torusGeometry args={[0.07, 0.016, 4, 8, Math.PI]} /><meshStandardMaterial color="#d6457f" roughness={0.55} /></mesh>
+            <mesh position={[0, 0.22, -0.07]}><torusGeometry args={[0.07, 0.016, 4, 8, Math.PI]} /><meshStandardMaterial color="#d6457f" roughness={0.55} /></mesh>
+            {/* white price tag dangling off the side */}
+            <mesh position={[0.18, -0.04, 0.08]} rotation={[0, 0, 0.4]}><boxGeometry args={[0.12, 0.085, 0.012]} /><meshStandardMaterial color="#ffffff" roughness={0.7} /></mesh>
           </group>
         )}
         {isDisguised && (
@@ -228,11 +233,11 @@ const Cell: React.FC<CellProps> = (props) => {
                UNVERIFIED deal — tap to inspect before committing a route over it. */
             <group position={[0, 0.34, 0]}>
               <mesh rotation={[Math.PI/2, 0, 0]}>
-                <cylinderGeometry args={[0.27, 0.27, 0.07, 20]} />
+                <cylinderGeometry args={[0.27, 0.27, 0.07, 8]} />
                 <meshStandardMaterial color="#FFD24A" metalness={0.06} roughness={0.5} emissive="#7a2a00" emissiveIntensity={0} />
               </mesh>
               <mesh position={[0, -0.18, 0]} rotation={[Math.PI/2, 0, 0]}>
-                <torusGeometry args={[0.22, 0.022, 8, 24]} />
+                <torusGeometry args={[0.22, 0.022, 6, 8]} />
                 <meshStandardMaterial color="#22d3ee" emissive="#22d3ee" emissiveIntensity={0.7} toneMapped={false} />
               </mesh>
             </group>
@@ -247,7 +252,7 @@ const Cell: React.FC<CellProps> = (props) => {
           ) : (
             /* Inspected and revealed SAFE (a real sealed deal): a calm green check ring. */
             <mesh position={[0, 0.06, 0]} rotation={[Math.PI/2, 0, 0]}>
-              <torusGeometry args={[0.16, 0.02, 8, 24]} />
+              <torusGeometry args={[0.16, 0.02, 6, 8]} />
               <meshStandardMaterial color="#34d399" emissive="#10b981" emissiveIntensity={0.5} toneMapped={false} />
             </mesh>
           )
@@ -281,7 +286,7 @@ const Cell: React.FC<CellProps> = (props) => {
               <meshStandardMaterial color="#34d399" emissive="#10b981" emissiveIntensity={0.45} metalness={0.04} roughness={0.5} toneMapped={false} />
             </mesh>
             <mesh rotation={[Math.PI/2, 0, 0]}>
-              <torusGeometry args={[0.26, 0.03, 10, 28]} />
+              <torusGeometry args={[0.26, 0.03, 6, 8]} />
               <meshStandardMaterial color="#FFD24A" emissive="#7a5a00" emissiveIntensity={0} metalness={0.06} roughness={0.5} toneMapped={false} />
             </mesh>
           </group>
@@ -292,11 +297,16 @@ const Cell: React.FC<CellProps> = (props) => {
              grabbed FRESH (early), little once it goes stale. Hides when collected. */
           <group position={[0, 0.34, 0]} visible={!isPackageCollected}>
             <mesh rotation={[Math.PI/2, 0, 0]}>
-              <cylinderGeometry args={[0.26, 0.26, 0.07, 20]} />
+              <cylinderGeometry args={[0.26, 0.26, 0.07, 8]} />
               <meshStandardMaterial color="#FFD24A" metalness={0.06} roughness={0.5} emissive="#7a5a00" emissiveIntensity={0.12} />
             </mesh>
+            {/* rim band — matches the main coin family */}
+            <mesh>
+              <torusGeometry args={[0.26, 0.032, 6, 8]} />
+              <meshStandardMaterial color="#E0A82E" metalness={0.06} roughness={0.5} />
+            </mesh>
             <mesh position={[0, -0.16, 0]} rotation={[Math.PI/2, 0, 0]}>
-              <torusGeometry args={[0.2, 0.022, 8, 24]} />
+              <torusGeometry args={[0.2, 0.022, 6, 8]} />
               <meshStandardMaterial color="#22d3ee" emissive="#22d3ee" emissiveIntensity={0.6} toneMapped={false} />
             </mesh>
           </group>
@@ -311,10 +321,21 @@ const Cell: React.FC<CellProps> = (props) => {
               <boxGeometry args={[0.82, 0.08, 0.82]} />
               <meshStandardMaterial color="#f59e0b" emissive="#b45309" emissiveIntensity={0.5} opacity={0.85} transparent />
             </mesh>
-            <mesh position={[0, 0.26, 0]} rotation={[0, 0, 0.2]}>
-              <octahedronGeometry args={[0.17, 0]} />
-              <meshStandardMaterial color="#fcd34d" emissive="#f59e0b" emissiveIntensity={0.8} toneMapped={false} />
-            </mesh>
+            {/* boxy lightning bolt — a "surprise bill" strike, cute + readable */}
+            <group position={[0, 0.3, 0]} rotation={[0, 0.5, 0]}>
+              <mesh position={[0.05, 0.1, 0]} rotation={[0, 0, 0.5]} castShadow>
+                <boxGeometry args={[0.09, 0.24, 0.06]} />
+                <meshStandardMaterial color="#fcd34d" emissive="#f59e0b" emissiveIntensity={0.8} toneMapped={false} />
+              </mesh>
+              <mesh position={[-0.05, -0.1, 0]} rotation={[0, 0, 0.5]} castShadow>
+                <boxGeometry args={[0.09, 0.24, 0.06]} />
+                <meshStandardMaterial color="#fcd34d" emissive="#f59e0b" emissiveIntensity={0.8} toneMapped={false} />
+              </mesh>
+              <mesh rotation={[0, 0, -0.9]}>
+                <boxGeometry args={[0.07, 0.16, 0.06]} />
+                <meshStandardMaterial color="#fcd34d" emissive="#f59e0b" emissiveIntensity={0.8} toneMapped={false} />
+              </mesh>
+            </group>
           </group>
       )}
 
@@ -323,27 +344,42 @@ const Cell: React.FC<CellProps> = (props) => {
              reserve (emergency fund). Hides once collected. */
           <group position={[0, 0.34, 0]} visible={!isPackageCollected}>
             <mesh rotation={[Math.PI / 2, 0, 0]}>
-              <cylinderGeometry args={[0.25, 0.25, 0.07, 20]} />
+              <cylinderGeometry args={[0.25, 0.25, 0.07, 8]} />
               <meshStandardMaterial color="#34d399" metalness={0.05} roughness={0.5} emissive="#10b981" emissiveIntensity={0.32} toneMapped={false} />
             </mesh>
-            <mesh position={[0, 0, 0.06]}>
-              <sphereGeometry args={[0.08, 12, 12]} />
+            {/* rim band — matches the main coin family */}
+            <mesh>
+              <torusGeometry args={[0.25, 0.03, 6, 8]} />
+              <meshStandardMaterial color="#1f9e6d" metalness={0.05} roughness={0.5} />
+            </mesh>
+            {/* small gold nugget cube, not a sphere */}
+            <mesh position={[0, 0, 0.06]} rotation={[0.3, 0.4, 0.2]}>
+              <boxGeometry args={[0.1, 0.1, 0.1]} />
               <meshStandardMaterial color="#FFE9A8" emissive="#FFD24A" emissiveIntensity={0} toneMapped={false} />
             </mesh>
           </group>
       )}
 
       {isToll && (
-          /* W7 toll gate: a translucent GOLD barrier with a coin — crossing it
-             spends from your budget. Required gems are reachable toll-free. */
+          /* W7 toll gate: a cute BARRIER GATE — two posts and a gold striped arm,
+             like a parking barrier. Open space under the arm + translucency =
+             clearly passable-but-priced (vs the solid want obstacle); crossing
+             spends from your budget. Required gems stay reachable toll-free. */
           <group position={[0, 0, 0]}>
-            <mesh position={[0, 0.28, 0]}>
-              <boxGeometry args={[0.8, 0.56, 0.14]} />
-              <meshStandardMaterial color="#FFD24A" metalness={0.05} roughness={0.55} emissive="#7a5a00" emissiveIntensity={0} opacity={0.62} transparent />
-            </mesh>
-            <mesh position={[0, 0.56, 0.09]} rotation={[Math.PI / 2, 0, 0]}>
-              <cylinderGeometry args={[0.13, 0.13, 0.04, 18]} />
-              <meshStandardMaterial color="#FFE9A8" metalness={0.06} roughness={0.5} emissiveIntensity={0} toneMapped={false} />
+            {/* posts (tall one carries the coin price sign) */}
+            <mesh position={[-0.36, 0.22, 0]} castShadow><boxGeometry args={[0.1, 0.44, 0.1]} /><meshStandardMaterial color="#3f3a52" roughness={0.9} metalness={0} /></mesh>
+            <mesh position={[0.36, 0.14, 0]} castShadow><boxGeometry args={[0.1, 0.28, 0.1]} /><meshStandardMaterial color="#3f3a52" roughness={0.9} metalness={0} /></mesh>
+            {/* striped barrier arm, resting from tall post down to short post */}
+            <group position={[0, 0.37, 0]} rotation={[0, 0, -0.12]}>
+              <mesh castShadow><boxGeometry args={[0.78, 0.09, 0.09]} /><meshStandardMaterial color="#FFD24A" roughness={0.55} metalness={0} opacity={0.85} transparent /></mesh>
+              {[-0.22, 0.02, 0.26].map((x, i) => (
+                <mesh key={i} position={[x, 0, 0]}><boxGeometry args={[0.1, 0.095, 0.095]} /><meshStandardMaterial color="#fff7e0" roughness={0.6} metalness={0} opacity={0.9} transparent /></mesh>
+              ))}
+            </group>
+            {/* coin sign on the tall post — "this costs money" */}
+            <mesh position={[-0.36, 0.52, 0.04]} rotation={[Math.PI / 2, 0, 0]}>
+              <cylinderGeometry args={[0.09, 0.09, 0.05, 8]} />
+              <meshStandardMaterial color="#FFE9A8" metalness={0.06} roughness={0.5} />
             </mesh>
           </group>
       )}

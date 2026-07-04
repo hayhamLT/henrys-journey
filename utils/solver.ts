@@ -166,10 +166,18 @@ export const solve = (level: Level, options: SolveOptions = { requireAllGems: tr
   // Cap it generously — the median solve visits well under a thousand nodes, so this
   // only trips on pathological layouts, which we treat as "too complex" (unsolvable)
   // and the generator simply rolls another candidate. Keeps level loads snappy.
+  //
+  // We dequeue with a HEAD POINTER (queue[head++]) rather than queue.shift(): shift()
+  // is O(n), so on a big late-world solve where the frontier grows to tens of
+  // thousands, draining it degraded to ~O(n²) and a single hard board (e.g. campaign
+  // level 79, a 9-wide W7 layout with 3 portals) took ~5s and blew the cap before
+  // finding its route. With O(1) dequeue each node-pop is cheap, so we can both keep
+  // loads snappy AND raise the cap enough to actually reach those late-game solutions.
   let nodes = 0;
-  while (queue.length > 0) {
-    if (++nodes > 90000) return { isSolvable: false, path: null };
-    const { pos, moves, collectedMask, crumbledMask, wallet } = queue.shift()!;
+  let head = 0;
+  while (head < queue.length) {
+    if (++nodes > 250000) return { isSolvable: false, path: null };
+    const { pos, moves, collectedMask, crumbledMask, wallet } = queue[head++];
 
     const allRequiredGemsCollected = requiredGems.every(gem => {
         const gemGlobalIndex = allCollectibles.findIndex(g => g.row === gem.row && g.col === gem.col);

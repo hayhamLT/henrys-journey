@@ -461,8 +461,20 @@ export const App: React.FC = () => {
         // Reset lives visually in demo mode so it looks clean
         if (isDemoMode) setLives(3);
 
-        setTimeout(() => { if (loadOperationIdRef.current === currentOpId) { setIsLoading(false); setTransitionState('intro'); setBotVisualState('default'); } }, 100); 
+        setTimeout(() => { if (loadOperationIdRef.current === currentOpId) { setIsLoading(false); setTransitionState('intro'); setBotVisualState('default'); } }, 100);
         if (index < 10000) { setTimeout(async () => { const nextIndex = index + 1; const nextKey = `main-${nextIndex}`; if (preloadedLevelRef.current?.key === nextKey) return; if (nextIndex >= 10000) return; const nextData = await generateLevelByIndex(nextIndex); if (nextData) { preloadedLevelRef.current = { key: nextKey, level: nextData }; } }, 1000); }
+    } else {
+        // Generation returned null (near-impossible after the relaxed fallback,
+        // but NEVER strand a kid on an eternal loading screen): load a canned
+        // safe board and clear the loader.
+        console.error(`[loadLevel] level ${index} failed to generate — loading fallback board`);
+        const base = TUTORIAL_LEVELS[Math.min(2, TUTORIAL_LEVELS.length - 1)];
+        const fallback: Level = { ...base, grid: base.grid.map(row => [...row]), tutorial: undefined, par: base.par || 10, timeLimit: base.timeLimit || 45 };
+        setSceneKey(prev => prev + 1);
+        setCurrentLevel(fallback); setGrid(fallback.grid); setBotPosition(fallback.start); setBotDirection(Move.Down);
+        setCollectedPackages([]); setParticleEffects([]); setLevelTime(0); levelTimeRef.current = 0;
+        setTransientStatusMessage({ text: 'THAT LEVEL GOT SCRAMBLED — BONUS ROUND!', color: 'yellow' });
+        setTimeout(() => { if (loadOperationIdRef.current === currentOpId) { setIsLoading(false); setTransitionState('intro'); setBotVisualState('default'); } }, 100);
     }
     }, [appState, customLevels, spawnMila, clearAnimationTimers, clearMilaTimers, stopAutoplay, isDemoMode, setLevelIndex]);
 
@@ -1494,17 +1506,19 @@ export const App: React.FC = () => {
       loadChallengeLevel(0, seed, length, 'standard');
   };
 
-    const loadChallengeLevel = useCallback((index: number, seedBase: number, totalLevelsOverride?: number, modeOverride?: 'standard' | 'daily') => {
+    const loadChallengeLevel = useCallback((index: number, seedBase: number, totalLevelsOverride?: number, modeOverride?: 'standard' | 'daily', retryAttempt = 0) => {
       const preloadKey = `chal-${seedBase}-${index}`;
       const totalLevels = totalLevelsOverride || challengeState.totalLevels;
       const mode = modeOverride || challengeState.mode;
       let level: Level | null = null;
-      if (preloadedLevelRef.current && preloadedLevelRef.current.key === preloadKey) { level = preloadedLevelRef.current.level; preloadedLevelRef.current = null; } 
+      if (preloadedLevelRef.current && preloadedLevelRef.current.key === preloadKey) { level = preloadedLevelRef.current.level; preloadedLevelRef.current = null; }
       else {
           const levelSeed = seedBase + index * 997; setSeed(levelSeed);
+          // Clamp to the designed space: past TOTAL_LEVELS-1 the world gates all
+          // read out-of-range and silently strip every money mechanic.
           let difficulty;
-          if (mode === 'daily') difficulty = 40 + Math.floor((index / totalLevels) * 100); 
-          else difficulty = 40 + Math.floor((index / totalLevels) * 60); 
+          if (mode === 'daily') difficulty = Math.min(TOTAL_LEVELS - 1, 40 + Math.floor((index / totalLevels) * 100));
+          else difficulty = Math.min(TOTAL_LEVELS - 1, 40 + Math.floor((index / totalLevels) * 60));
           let attempts = 0; while (!level && attempts < 10) { try { level = attemptGenerateLevel(difficulty); } catch(e) {} attempts++; }
       }
       
@@ -1527,8 +1541,8 @@ export const App: React.FC = () => {
               if (preloadedLevelRef.current?.key === nextKey) return;
               const nextLevelSeed = seedBase + nextIndex * 997; setSeed(nextLevelSeed);
               let nextDifficulty;
-              if (mode === 'daily') nextDifficulty = 40 + Math.floor((nextIndex / totalLevels) * 100);
-              else nextDifficulty = 40 + Math.floor((nextIndex / totalLevels) * 60);
+              if (mode === 'daily') nextDifficulty = Math.min(TOTAL_LEVELS - 1, 40 + Math.floor((nextIndex / totalLevels) * 100));
+              else nextDifficulty = Math.min(TOTAL_LEVELS - 1, 40 + Math.floor((nextIndex / totalLevels) * 60));
               let nextLevel: Level | null = null; let retry = 0;
               while (!nextLevel && retry < 5) { try { nextLevel = attemptGenerateLevel(nextDifficulty); } catch(e) {} retry++; }
               if (nextLevel) { 
@@ -1540,8 +1554,16 @@ export const App: React.FC = () => {
                   preloadedLevelRef.current = { key: nextKey, level: nextLevel }; 
               }
           }, 1000);
+      } else if (retryAttempt < 4) {
+          // Perturb the seed each retry: retrying the IDENTICAL seed fails
+          // deterministically forever — a livelock that bricked the daily for
+          // everyone. The perturbation is derived from the same seedBase, so
+          // every player still lands on the same rescue board (fair).
+          setTransientStatusMessage({ text: "Retrying...", color: 'red' });
+          setTimeout(() => loadChallengeLevel(index, seedBase + (retryAttempt + 1) * 7919, totalLevels, mode, retryAttempt + 1), 600);
       } else {
-          setTransientStatusMessage({ text: "Retrying...", color: 'red' }); setTimeout(() => loadChallengeLevel(index, seedBase, totalLevels, mode), 1000);
+          setTransientStatusMessage({ text: "Couldn't build that level — try again soon!", color: 'red' });
+          setTimeout(() => { setTransientStatusMessage(null); setAppState(mode === 'daily' ? 'daily_hub' : 'main_menu'); }, 1500);
       }
     }, [challengeState.totalLevels, challengeState.mode, clearAnimationTimers]);
 

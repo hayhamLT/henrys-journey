@@ -95,4 +95,10 @@ export const HATS: Hat[] = [
     price: 1800,
     model: ICONS.Bot,
   },
+  {
+    id: 'graduation',
+    name: 'Graduation Cap',
+    price: 1200,
+    model: ICONS.Bot,
+  },
 ];

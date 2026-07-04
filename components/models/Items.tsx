@@ -40,20 +40,20 @@ export const CrystalGem3D: React.FC<{ position: [number, number, number], color:
     return (
         <group position={position}>
             <group ref={groupRef} scale={0.34}>
-                {/* fat low-poly disc on edge, spins about Y */}
+                {/* faceted voxel coin — octagonal prism, not a smooth disc */}
                 <mesh castShadow rotation={[Math.PI / 2, 0, 0]}>
-                    <cylinderGeometry args={[0.55, 0.55, 0.16, 18]} />
+                    <cylinderGeometry args={[0.55, 0.55, 0.16, 8]} />
                     {mat(c, 1.8)}
                 </mesh>
-                {/* raised rim band */}
+                {/* raised rim band — low-poly faceted ring */}
                 <mesh>
-                    <torusGeometry args={[0.55, 0.06, 8, 20]} />
+                    <torusGeometry args={[0.55, 0.06, 6, 8]} />
                     {mat(rim, 1.2)}
                 </mesh>
                 {/* embossed center pip on each face */}
                 {[0.085, -0.085].map((z, i) => (
                     <mesh key={i} position={[0, 0, z]} rotation={[Math.PI / 2, 0, 0]}>
-                        <cylinderGeometry args={[0.22, 0.22, 0.04, 14]} />
+                        <cylinderGeometry args={[0.22, 0.22, 0.04, 8]} />
                         {mat(pip, 1.0)}
                     </mesh>
                 ))}
@@ -109,19 +109,9 @@ export const ForceField3D: React.FC<{ position: [number, number, number], color:
     // Animation State: 0 = Locked, 1 = Unlocked/Gone
     const unlockProgress = useRef(isLocked ? 0 : 1);
 
-    const shackleColorHex = '#E5C100'; 
+    const shackleColorHex = '#E5C100';
 
-    const bodyGeo = useMemo(() => {
-        const shape = new THREE_LIB.Shape();
-        const w = 0.22; const h = 0.18;
-        shape.moveTo(-w, -h); shape.lineTo(w, -h); shape.lineTo(w, h); shape.lineTo(-w, h); shape.lineTo(-w, -h);
-        const geom = new THREE_LIB.ExtrudeGeometry(shape, {
-            steps: 1, depth: 0.12, bevelEnabled: true, bevelThickness: 0.04, bevelSize: 0.04, bevelSegments: 1      
-        });
-        geom.center(); return geom;
-    }, []);
-
-    useFrame((state, delta) => { 
+    useFrame((state, delta) => {
         const dt = Math.min(delta, 0.1);
         const target = isLocked ? 0 : 1;
         
@@ -166,31 +156,33 @@ export const ForceField3D: React.FC<{ position: [number, number, number], color:
 
     return (
         <group position={position}>
-            <group ref={groupRef} scale={0.7}> 
-                <mesh ref={bodyRef} geometry={bodyGeo} position={[0, 0.5, 0]} castShadow receiveShadow>
-                    <meshStandardMaterial color={c} metalness={0.15} roughness={0.7} />
+            <group ref={groupRef} scale={0.7}>
+                {/* Voxel padlock body — a plain box, no bevel/extrude */}
+                <mesh ref={bodyRef} position={[0, 0.5, 0]} castShadow receiveShadow>
+                    <boxGeometry args={[0.44, 0.36, 0.2]} />
+                    <meshStandardMaterial color={c} metalness={0.1} roughness={0.75} />
                 </mesh>
-                
-                {/* Shackle Group */}
+
+                {/* Shackle Group — a boxy "U" (top bar + two legs), not a torus loop */}
                 <group ref={shackleRef} position={[0, 0.71, 0]}>
-                    <mesh rotation={[0, 0, 0]}>
-                            <torusGeometry args={[0.15, 0.05, 6, 5, Math.PI]} />
-                            <meshStandardMaterial color={shackleColorHex} metalness={0.2} roughness={0.55} flatShading />
+                    <mesh position={[0, 0.08, 0]}>
+                        <boxGeometry args={[0.3, 0.1, 0.1]} />
+                        <meshStandardMaterial color={shackleColorHex} metalness={0.15} roughness={0.6} flatShading />
                     </mesh>
-                    <mesh position={[-0.15, -0.12, 0]}>
-                        <cylinderGeometry args={[0.05, 0.05, 0.25, 6]} />
-                        <meshStandardMaterial color={shackleColorHex} metalness={0.2} roughness={0.55} flatShading />
+                    <mesh position={[-0.1, -0.05, 0]}>
+                        <boxGeometry args={[0.1, 0.24, 0.1]} />
+                        <meshStandardMaterial color={shackleColorHex} metalness={0.15} roughness={0.6} flatShading />
                     </mesh>
-                    <mesh position={[0.15, -0.12, 0]}>
-                        <cylinderGeometry args={[0.05, 0.05, 0.25, 6]} />
-                        <meshStandardMaterial color={shackleColorHex} metalness={0.2} roughness={0.55} flatShading />
+                    <mesh position={[0.1, -0.05, 0]}>
+                        <boxGeometry args={[0.1, 0.24, 0.1]} />
+                        <meshStandardMaterial color={shackleColorHex} metalness={0.15} roughness={0.6} flatShading />
                     </mesh>
                 </group>
 
-                {/* Keyhole Detail */}
-                <group position={[0, 0.47, 0.13]}>
-                    <mesh rotation={[Math.PI/2, 0, 0]}>
-                        <cylinderGeometry args={[0.05, 0.05, 0.02, 16]} />
+                {/* Keyhole Detail — a small square notch, not a circle */}
+                <group position={[0, 0.47, 0.11]}>
+                    <mesh>
+                        <boxGeometry args={[0.07, 0.07, 0.02]} />
                         <meshStandardMaterial color="#1a0505" roughness={1} />
                     </mesh>
                     <mesh position={[0, -0.05, 0]}>
@@ -225,13 +217,14 @@ export const Bomb: React.FC<{ position: [number, number, number], seed?: number 
     
     return (
         <group position={[position[0], 0.35, position[2]]} ref={ref}>
+            {/* Voxel bomb body — a plain cube, not a faceted dodecahedron */}
             <mesh castShadow receiveShadow>
-                <dodecahedronGeometry args={[0.25, 0]} />
+                <boxGeometry args={[0.4, 0.4, 0.4]} />
                 <meshStandardMaterial map={texture} color="#34495e" roughness={0.7} />
                 <Edges threshold={15} color="#111" />
             </mesh>
             <mesh position={[0, 0.22, 0]} castShadow>
-                <cylinderGeometry args={[0.1, 0.12, 0.08, 6]} />
+                <boxGeometry args={[0.16, 0.08, 0.16]} />
                 <meshStandardMaterial map={capTexture} color="#ef4444" roughness={0.4} />
                 <Edges threshold={15} color="#300" />
             </mesh>
@@ -260,20 +253,22 @@ export const CosmicPortal: React.FC<{ position: [number, number, number], color:
     if (shape === 'circle') {
         return (
             <group position={[position[0], 0, position[2]]} scale={scale}>
+                {/* Octagonal voxel base — not a smooth cylinder */}
                 <mesh position={[0, 0.02, 0]} receiveShadow>
-                    <cylinderGeometry args={[0.45, 0.45, 0.01, 32]} />
+                    <cylinderGeometry args={[0.45, 0.45, 0.01, 8]} />
                     <meshStandardMaterial map={baseTexture} color="#1e293b" />
                 </mesh>
                 <group ref={apertureRef} position={[0, 0, 0]}>
                     {(isOpen || isActive) && (
                         <mesh position={[0, 0.026, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-                            <circleGeometry args={[0.35, 32]} />
+                            <circleGeometry args={[0.35, 8]} />
                             <meshBasicMaterial color="#000000" side={THREE_LIB.DoubleSide} />
                         </mesh>
                     )}
                     <group position={[0, 0.03, 0]}>
+                        {/* Faceted low-poly ring — matches the voxel coin family */}
                         <mesh rotation={[-Math.PI / 2, 0, 0]}>
-                            <torusGeometry args={[0.35, 0.04, 16, 32]} />
+                            <torusGeometry args={[0.35, 0.04, 6, 8]} />
                             <meshStandardMaterial color={color} emissive={color} emissiveIntensity={emissiveInt} toneMapped={false} roughness={0.4} metalness={0.1} />
                         </mesh>
                     </group>
@@ -318,4 +313,31 @@ export const CosmicPortal: React.FC<{ position: [number, number, number], color:
     );
 };
 
-export const Teleporter: React.FC<{ position: [number, number, number], color: string }> = ({ position, color }) => { return <CosmicPortal position={position} color={color} isOpen={true} scale={0.5} shape="square" />; };
+// A floating, glowing "$" beacon that hovers over a teleporter pad — reframing
+// the warp as a MONEY TRANSFER point (wire/ATM): step in here, your money
+// (and you) move instantly to the linked pad. (Restored — the "old old" portal.)
+const TransferEmblem: React.FC<{ position: [number, number, number], color: string }> = ({ position, color }) => {
+    const ref = useRef<THREE_LIB.Group>(null);
+    useFrame((state) => {
+        if (ref.current) {
+            ref.current.rotation.y += 0.02;
+            ref.current.position.y = 0.6 + Math.sin(state.clock.elapsedTime * 2) * 0.07;
+        }
+    });
+    const matProps = { color, emissive: color, emissiveIntensity: 2.2, toneMapped: false, roughness: 0.4, metalness: 0.3 };
+    return (
+        <group position={[position[0], 0.6, position[2]]} ref={ref} scale={0.5}>
+            <mesh><boxGeometry args={[0.07, 0.5, 0.07]} /><meshStandardMaterial {...matProps} /></mesh>
+            <mesh position={[0, 0.17, 0]}><boxGeometry args={[0.32, 0.08, 0.07]} /><meshStandardMaterial {...matProps} /></mesh>
+            <mesh position={[0, 0, 0]}><boxGeometry args={[0.32, 0.08, 0.07]} /><meshStandardMaterial {...matProps} /></mesh>
+            <mesh position={[0, -0.17, 0]}><boxGeometry args={[0.32, 0.08, 0.07]} /><meshStandardMaterial {...matProps} /></mesh>
+        </group>
+    );
+};
+
+export const Teleporter: React.FC<{ position: [number, number, number], color: string }> = ({ position, color }) => (
+    <group>
+        <CosmicPortal position={position} color={color} isOpen={true} scale={0.5} shape="square" />
+        <TransferEmblem position={position} color={color} />
+    </group>
+);
