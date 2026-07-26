@@ -18,6 +18,12 @@ import { GameClouds } from './components/Clouds';
 import { SmoothBackground } from './components/SmoothBackground'; 
 import TutorialGesture from './components/TutorialGesture';
 import DailyChallengeHub from './components/DailyChallengeHub';
+import { confirmDialog, alertDialog } from './utils/nativeConfirm';
+import { haptic, confirmWithBiometrics } from './utils/nativeBridge';
+import { pushWidgetSnapshot } from './utils/widgetSync';
+import { startLevelActivity, updateLevelActivity, endLevelActivity } from './utils/liveActivity';
+import { submitScore, LEADERBOARDS } from './utils/gameCenter';
+import { scheduleStreakReminder, clearStreakReminder } from './utils/nativeNotifications';
 import SocialHub from './components/SocialHub';
 import ShopTab from './components/ShopTab';
 import MoreMenu from './components/MoreMenu';
@@ -109,6 +115,7 @@ const findPos = (grid: CellType[][], type: CellType): Position => {
 export const App: React.FC = () => {
     const SHOW_GAMEPLAY_NOTIFICATIONS = false;
     const SHOW_OBJECTIVE_UI = false;
+    const SHOW_MONEY_SKILL_NOTIFICATIONS = false;
     const initialPathIsAdmin = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin');
 
   // --- DEMO MODE STATE (Hoisted) ---
@@ -216,6 +223,89 @@ export const App: React.FC = () => {
       update();
       mq.addEventListener('change', update);
       return () => mq.removeEventListener('change', update);
+  }, []);
+
+  // Ref-mirror of dailyProgress so the always-on lifecycle listener below
+  // reads the freshest streak without being in its deps list.
+  const dailyProgressRef = useRef<any>(null);
+  useEffect(() => { dailyProgressRef.current = dailyProgress; });
+
+  // Path B3-extra: submit longest streak whenever it grows.
+  const streakRef = useRef<number>(0);
+  useEffect(() => {
+      const s = dailyProgress?.streak || 0;
+      if (s > streakRef.current) {
+          streakRef.current = s;
+          submitScore(LEADERBOARDS.longest_streak, s).catch(() => {});
+      }
+  }, [dailyProgress?.streak]);
+
+  // Path B4+B5: native app lifecycle + deep-link handling.
+  // - On background: if streak is active, schedule a 22h local reminder.
+  // - On foreground: clear the pending reminder.
+  // - On deep-link URL: route to challenge/level/coop/daily.
+  // All Capacitor App calls are guarded — no-ops on the web.
+  useEffect(() => {
+      let cleanup: (() => void) | null = null;
+      let cancelled = false;
+
+      (async () => {
+          try {
+              const { Capacitor } = await import('@capacitor/core');
+              if (!Capacitor.isNativePlatform()) return;
+              if (cancelled) return;
+              const { App } = await import('@capacitor/app');
+
+              const stateSub = await App.addListener('appStateChange', async (s: any) => {
+                  if (s.isActive) {
+                      // Foregrounded — kill the "come back" reminder.
+                      clearStreakReminder().catch(() => {});
+                  } else {
+                      // Backgrounded — if there's a live streak, schedule a
+                      // reminder for ~22h so we nudge before it breaks.
+                      const streak = (dailyProgressRef.current?.streak) ?? 0;
+                      if (streak > 0) {
+                          scheduleStreakReminder(Date.now(), streak).catch(() => {});
+                      }
+                  }
+              });
+
+              const urlSub = await App.addListener('appUrlOpen', (evt: any) => {
+                  const raw = evt?.url as string | undefined;
+                  if (!raw) return;
+                  try {
+                      const u = new URL(raw);
+                      const path = u.pathname;
+                      if (path.startsWith('/challenge/')) {
+                          const seed = path.replace('/challenge/', '');
+                          if (seed) window.location.hash = `#challenge=${encodeURIComponent(seed)}`;
+                      } else if (path.startsWith('/level/')) {
+                          const idx = parseInt(path.replace('/level/', ''), 10);
+                          if (Number.isFinite(idx)) window.location.hash = `#level=${idx}`;
+                      } else if (path.startsWith('/coop/')) {
+                          const gid = path.replace('/coop/', '');
+                          if (gid) window.location.hash = `#coop=${encodeURIComponent(gid)}`;
+                      } else if (path === '/daily') {
+                          window.location.hash = '#daily';
+                      }
+                  } catch (e) {
+                      console.warn('[appUrlOpen] parse failed for', raw, e);
+                  }
+              });
+
+              cleanup = () => {
+                  stateSub.remove?.();
+                  urlSub.remove?.();
+              };
+          } catch (e) {
+              console.warn('[app lifecycle] setup skipped:', e);
+          }
+      })();
+
+      return () => {
+          cancelled = true;
+          cleanup?.();
+      };
   }, []);
 
   useEffect(() => {
@@ -1023,6 +1113,29 @@ export const App: React.FC = () => {
       }
   }, [currency, savedGoalPeak, isDemoMode, setSavedGoalPeak]);
 
+  // Path B1: mirror savings + streak + resume-level state into the App-Group
+  // preferences suite so the Home Screen widget reflects live progress. Rate-
+  // limited to once per 500ms because currency / level state can update fast
+  // during coin count-ups.
+  const widgetPushRef = useRef<number>(0);
+  useEffect(() => {
+      if (isDemoMode) return;
+      const now = Date.now();
+      if (now - widgetPushRef.current < 500) return;
+      widgetPushRef.current = now;
+      const goal = currentSavingsGoal(Math.max(savedGoalPeak, currency));
+      const worldIdx = levelIndex >= 0 && levelIndex < TOTAL_LEVELS && !isMoneyLevel(levelIndex)
+          ? Math.floor(levelIndex / LEVELS_PER_WORLD) : 0;
+      const world = WORLDS[worldIdx];
+      pushWidgetSnapshot({
+          streak: dailyProgress?.streak || 0,
+          savingsCurrent: currency,
+          savingsGoal: goal,
+          currentLevel: (levelIndex % LEVELS_PER_WORLD) + 1,
+          worldName: world?.name || "The Meadow",
+      }).catch(() => {});
+  }, [currency, savedGoalPeak, dailyProgress?.streak, levelIndex, isDemoMode]);
+
   useEffect(() => {
       if (user?.uid) {
           sendHeartbeat();
@@ -1265,8 +1378,26 @@ export const App: React.FC = () => {
     }, [invites, user, handleAcceptCoopInvite]);
 
   const handleDeleteAccount = async () => {
-      if (isGuest) { if (confirm("Reset all local progress? This cannot be undone.")) { localStorage.clear(); window.location.reload(); } } 
-      else { if (confirm("PERMANENTLY DELETE ACCOUNT? This will erase all your progress, levels, and scores from the cloud. This cannot be undone.")) { try { localStorage.clear(); await deleteUserProfile(); await logoutUser(); window.location.reload(); } catch (e: any) { alert("Error deleting account: " + e.message); } } }
+      if (isGuest) {
+          const ok = await confirmDialog({
+              title: "Reset all progress?",
+              message: "This will erase all your levels, coins, and unlocks on this device. This cannot be undone.",
+              confirmLabel: "Reset",
+              destructive: true,
+          });
+          if (ok) { localStorage.clear(); window.location.reload(); }
+      } else {
+          const ok = await confirmDialog({
+              title: "Delete your account?",
+              message: "This will permanently erase all your progress, levels, and scores from the cloud. This cannot be undone.",
+              confirmLabel: "Delete Account",
+              destructive: true,
+          });
+          if (ok) {
+              try { localStorage.clear(); await deleteUserProfile(); await logoutUser(); window.location.reload(); }
+              catch (e: any) { await alertDialog("Couldn't delete account", e.message); }
+          }
+      }
   };
 
   const handleExitGame = useCallback(async () => {
@@ -1748,9 +1879,14 @@ export const App: React.FC = () => {
       }
   }, [isDemoMode, gameStatus, isAutoplayActive, isLoading, currentLevel, triggerAutoplay]);
 
-  const handleUnlockAll = useCallback(() => {
-      if (!confirm("UNLOCK ALL: This will mark all levels as completed. Continue?")) return;
-      
+  const handleUnlockAll = useCallback(async () => {
+      const ok = await confirmDialog({
+          title: "Unlock every level?",
+          message: "This marks every level as completed so you can jump around freely. Your best times and medals stay yours.",
+          confirmLabel: "Unlock All",
+      });
+      if (!ok) return;
+
       setResultsByLevel(prev => {
           const next = { ...prev };
           WORLDS.forEach(world => {
@@ -1850,7 +1986,14 @@ export const App: React.FC = () => {
   };
 
   const handleBuyConsumable = (id: string, price: number) => {
-      if (currency >= price) { setSpentScore(prev => prev + price); if (id === 'autoSolver') { setAutoSolvers(prev => prev + 1); } playSound('unlock'); }
+      if (currency >= price) {
+          setSpentScore(prev => prev + price);
+          if (id === 'autoSolver') { setAutoSolvers(prev => prev + 1); }
+          playSound('unlock');
+          triggerHaptic('medium'); // Purchase confirmed — heavier than a UI tap
+      } else {
+          triggerHaptic('warning'); // Can't afford
+      }
   };
 
   const showLevelInsight = useCallback((insight: LevelInsight) => {
@@ -2052,6 +2195,11 @@ export const App: React.FC = () => {
               if (logic.hitPos) setWallHitPosition(logic.hitPos);
               setFailedMoveIndex(stepIndex); 
               playSound(logic.failType === 'wall' ? 'fail_wall' : logic.failType === 'bomb' ? 'fail_bomb' : logic.failType === 'trap' ? 'fail_trap' : 'fail_hole');
+              // Native error/warning haptic tuned to the hazard type — bombs
+              // and traps get the sharpest jolt, walls get a gentler warning.
+              triggerHaptic(logic.failType === 'bomb' || logic.failType === 'trap' ? 'error' : 'warning');
+              // Path B2: end the Live Activity on failure too.
+              endLevelActivity().catch(() => {});
               handleLifeLoss(logic.failType);
               stopAndSaveRecording();
           }
@@ -2075,6 +2223,16 @@ export const App: React.FC = () => {
           });
           playSound(isPerfect ? 'perfect' : 'success');
           triggerHaptic('success');
+          // Path B2: end the Live Activity on level clear.
+          endLevelActivity().catch(() => {});
+          // Path B3: submit the score to Game Center's arena / total-coins
+          // leaderboards. No-op off-iOS.
+          if (appState === 'tournament_play') {
+              submitScore(LEADERBOARDS.arena_all_time, result.scoreBreakdown.total).catch(() => {});
+          } else if (appState === 'challenge_play' && challengeState.mode === 'daily') {
+              submitScore(LEADERBOARDS.daily_challenge, result.scoreBreakdown.total).catch(() => {});
+          }
+          submitScore(LEADERBOARDS.total_coins, currency + result.scoreBreakdown.total).catch(() => {});
           // Coin count-up "cha-ching" tally after the win chord (cleaned up on replay).
           [0, 1, 2, 3].forEach(i => {
               const tTick = window.setTimeout(() => playSound('coin_tick', i), 520 + i * 130);
@@ -2324,10 +2482,27 @@ export const App: React.FC = () => {
       sequenceLogicRef.current = result.visualSteps;
       visualStepToMoveIndexRef.current = result.visualStepToMoveIndex;
       sequenceOutcomeRef.current = result.outcome;
-      
+
       setMoveSequence(result.newSequence);
       setExecutionPath(result.path);
       setGameStatus(GameStatus.Executing);
+
+      // Path B2: start a Live Activity as the plan executes so the current
+      // level shows up on the Lock Screen + Dynamic Island. `startLevelActivity`
+      // no-ops off-iOS, so this is safe to fire unconditionally.
+      const wIdx = levelIndex >= 0 && levelIndex < TOTAL_LEVELS && !isMoneyLevel(levelIndex)
+          ? Math.floor(levelIndex / LEVELS_PER_WORLD) : 0;
+      const world = WORLDS[wIdx];
+      const objectiveTarget = getObjectiveScoreTarget(currentLevel) ?? 0;
+      const moveLimit = getObjectiveMoveLimit(currentLevel) ?? 0;
+      startLevelActivity({
+          coinsCollected: 0,
+          coinsTarget: objectiveTarget,
+          movesUsed: 0,
+          movesBudget: moveLimit,
+          levelName: `Level ${(levelIndex % LEVELS_PER_WORLD) + 1}`,
+          worldName: world?.name || "Playing",
+      }).catch(() => {});
     }, [activeElementHint, markHintSeen, gameStatus, moveSequence, isAutoplayActive, triggerAutoplay, isTutorialActive, isDemoMode, currentTutorialStep, appState, coopGameId, coopRole, clearAnimationTimers, clearMilaTimers, mila, grid, botPosition, currentLevel, levelIndex]);
   
   // Sync latest runSequence to Ref
@@ -2392,7 +2567,18 @@ export const App: React.FC = () => {
   };
   
   const handlePublishLevel = async (index: number) => { if (index < 10000) return; const customIdx = index - 10000; const levelEntry = customLevels[customIdx]; if (levelEntry && user?.uid) { try { await publishLevel(levelEntry.data, user.uid, user.name, levelEntry.name); trackAdminEvent('level_published', 'builder', {}).catch(() => {}); setTransientStatusMessage({ text: "Shared with everyone!", color: 'blue' }); setTimeout(() => setTransientStatusMessage(null), 2000); } catch(e) { console.error(e); setTransientStatusMessage({ text: "Could not share - try again", color: 'red' }); setTimeout(() => setTransientStatusMessage(null), 2000); } } };
-  const handleDeleteLevel = async (index: number) => { if (index >= 10000) { const customIdx = index - 10000; const level = customLevels[customIdx]; if (level && user?.uid) { if (confirm("Delete this level?")) { await deleteUserLevel(user.uid, level.id); } } } };
+  const handleDeleteLevel = async (index: number) => {
+      if (index < 10000) return;
+      const level = customLevels[index - 10000];
+      if (!level || !user?.uid) return;
+      const ok = await confirmDialog({
+          title: "Delete this level?",
+          message: `“${level.name || 'Untitled'}” will be permanently removed.`,
+          confirmLabel: "Delete",
+          destructive: true,
+      });
+      if (ok) await deleteUserLevel(user.uid, level.id);
+  };
   const handleLikeLevel = async (levelId: string, isLiking: boolean) => { if (!user?.uid) return; setLikedLevels(prev => isLiking ? [...prev, levelId] : prev.filter(id => id !== levelId)); await toggleLevelLike(user.uid, levelId, isLiking); };
   
   const handleCreateCoop = async () => {
@@ -2458,10 +2644,10 @@ export const App: React.FC = () => {
           setShowAdminLoginModal(false);
           setShowCoopLoginModal(false);
           const stayOnAdmin = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin');
-          setAppState(stayOnAdmin ? 'admin' : 'main_menu'); 
+          setAppState(stayOnAdmin ? 'admin' : 'main_menu');
       } catch (e: any) {
           trackAdminEvent('sign_in_error').catch(() => {});
-          if (e.message) alert(e.message);
+          if (e.message) await alertDialog("Sign in failed", e.message);
       }
   };
 
@@ -2471,7 +2657,7 @@ export const App: React.FC = () => {
           return;
       }
       if (!isAdminUser) {
-          alert(`Admin access is currently restricted to ${ADMIN_EMAIL}.`);
+          alertDialog("Admin only", `Admin access is currently restricted to ${ADMIN_EMAIL}.`);
           return;
       }
       setAppState('admin');
@@ -2840,15 +3026,26 @@ export const App: React.FC = () => {
                       <ShopTab 
                           totalScore={currency}
                           hatState={hatState}
-                          onBuyHat={(id, price) => {
-                              if (currency >= price) {
-                                  setSpentScore(prev => prev + price);
-                                  setHatState(prev => ({ ...prev, unlocked: [...prev.unlocked, id] }));
-                                  playSound('unlock');
-                                  trackAdminEvent('shop_purchase', 'hat', { price }).catch(() => {});
-                              } else {
+                          onBuyHat={async (id, price) => {
+                              if (currency < price) {
+                                  triggerHaptic('warning');
                                   trackAdminEvent('purchase_blocked', 'hat', { price, balance: currency }).catch(() => {});
+                                  return;
                               }
+                              // Gate real coin spend behind Face ID / Touch ID
+                              // when available. On web (no biometrics), the
+                              // helper resolves true immediately so the flow
+                              // is unchanged for non-native users.
+                              const ok = await confirmWithBiometrics(`Buy this hat for ${price} coins?`);
+                              if (!ok) {
+                                  triggerHaptic('warning');
+                                  return;
+                              }
+                              setSpentScore(prev => prev + price);
+                              setHatState(prev => ({ ...prev, unlocked: [...prev.unlocked, id] }));
+                              playSound('unlock');
+                              triggerHaptic('success');
+                              trackAdminEvent('shop_purchase', 'hat', { price }).catch(() => {});
                           }}
                           onEquipHat={(id) => setHatState(prev => ({ ...prev, equipped: id }))}
                           appearance={appearance}
@@ -2871,15 +3068,19 @@ export const App: React.FC = () => {
                       <SettingsView 
                           settings={settings}
                           onSettingsChange={(newSet) => setSettings(prev => ({ ...prev, ...newSet }))}
-                          onResetProgress={async () => { 
-                              if(confirm("FACTORY RESET: This will permanently erase all progress, scores, and unlocks. This cannot be undone. Are you sure?")) {
-                                  if (user?.uid) {
-                                      try { await resetUserProgress(user.uid); } catch (e) { console.error("Cloud reset failed", e); }
-                                  }
-                                  localStorage.clear();
-                                  // Clear caches code omitted for brevity but should remain
-                                  window.location.reload();
+                          onResetProgress={async () => {
+                              const ok = await confirmDialog({
+                                  title: "Factory reset?",
+                                  message: "Every level, coin, medal, and unlock will be wiped from this device — and from the cloud if you're signed in. There's no undo.",
+                                  confirmLabel: "Erase Everything",
+                                  destructive: true,
+                              });
+                              if (!ok) return;
+                              if (user?.uid) {
+                                  try { await resetUserProgress(user.uid); } catch (e) { console.error("Cloud reset failed", e); }
                               }
+                              localStorage.clear();
+                              window.location.reload();
                           }}
                           onUnlockAll={handleUnlockAll} 
                           onNavigate={onNavigate}
@@ -3018,7 +3219,7 @@ export const App: React.FC = () => {
                       />
                   )}
 
-                  {appState === 'play' && moneyMission !== null && gameStatus === GameStatus.Planning && (
+                  {SHOW_MONEY_SKILL_NOTIFICATIONS && appState === 'play' && moneyMission !== null && gameStatus === GameStatus.Planning && (
                       <MissionRibbon
                           lesson={MONEY_LESSONS[moneyMission]}
                           lessonIndex={moneyMission}
@@ -3027,7 +3228,7 @@ export const App: React.FC = () => {
                       />
                   )}
 
-                  {appState === 'play' && worldConcept !== null && moneyMission === null && gameStatus === GameStatus.Planning && WORLDS[worldConcept] && (
+                  {SHOW_MONEY_SKILL_NOTIFICATIONS && appState === 'play' && worldConcept !== null && moneyMission === null && gameStatus === GameStatus.Planning && WORLDS[worldConcept] && (
                       <WorldConceptRibbon
                           world={WORLDS[worldConcept]}
                           worldIndex={worldConcept}
@@ -3127,7 +3328,7 @@ export const App: React.FC = () => {
           )}
 
           {showCoopLoginModal && (
-              <LoginModal 
+              <LoginModal
                 onClose={() => setShowCoopLoginModal(false)}
                 onLogin={handleLogin}
                 featureName="Online Co-op"
@@ -3139,7 +3340,7 @@ export const App: React.FC = () => {
                             <LoginModal
                                 onClose={() => setShowAdminLoginModal(false)}
                                 onLogin={handleLogin}
-                                featureName="Admin Dashboard"
+                                                featureName="Admin Dashboard"
                                 description="Sign in with Google and use hayhamlt@gmail.com to access traffic and gameplay analytics."
                             />
                     )}

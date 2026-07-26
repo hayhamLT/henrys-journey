@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Sign in with Apple (Guideline 4.8 - required if we offer other social login) -->
+	<key>com.apple.developer.applesignin</key>
+	<array>
+		<string>Default</string>
+	</array>
+
+	<!-- Push notifications (streak reminders, daily challenges, friend invites)
+	     Set to "production" before App Store release. -->
+	<key>aps-environment</key>
+	<string>development</string>
+
+	<!-- Game Center (arena leaderboards) -->
+	<key>com.apple.developer.game-center</key>
+	<true/>
+
+	<!-- Universal Links so challenge URLs open in the app instead of Safari.
+	     Requires apple-app-site-association hosted at:
+	       https://henry-s-journey.web.app/.well-known/apple-app-site-association
+	       https://henrysjourney.app/.well-known/apple-app-site-association -->
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>applinks:henry-s-journey.web.app</string>
+		<string>applinks:henrysjourney.app</string>
+	</array>
+
+	<!-- App groups for sharing data between the app and its Home-Screen widget
+	     (savings-goal % and streak count read by the widget). -->
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>group.com.henrysjourney.app.shared</string>
+	</array>
+
+	<!-- Keychain (for storing OAuth tokens securely across app + widget). -->
+	<key>keychain-access-groups</key>
+	<array>
+		<string>$(AppIdentifierPrefix)com.henrysjourney.app</string>
+	</array>
+
+	<!-- StoreKit 2 in-app purchase (coin packs / hats via App Store). -->
+	<key>com.apple.developer.in-app-payments</key>
+	<array/>
+</dict>
+</plist>

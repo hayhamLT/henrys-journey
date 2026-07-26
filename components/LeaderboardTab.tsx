@@ -154,8 +154,18 @@ const LeaderboardTab: React.FC<LeaderboardTabProps> = ({ isGuest, onLogin, onJoi
                                     </div>
 
                                     <div className="flex-grow min-w-0">
-                                        <div className="font-bold text-sm truncate text-white/90">{entry.name}</div>
-                                        <div className="text-[10px] text-[var(--text-dark)] font-bold">Explorer</div>
+                                        <div className="font-bold text-sm truncate text-white/90 flex items-center gap-1.5">
+                                            <span>{entry.name}</span>
+                                            {entry.rank <= 3 && (
+                                                <span className="text-[9px] font-black uppercase px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                                                    Pro
+                                                </span>
+                                            )}
+                                        </div>
+                                        <div className="text-[10px] text-slate-400 font-semibold flex items-center gap-1">
+                                            <span>Explorer</span>
+                                            <span className="text-emerald-400 font-bold">▲ +{((entry.rank * 7) % 3) + 1}</span>
+                                        </div>
                                     </div>
 
                                     <div className="text-right">

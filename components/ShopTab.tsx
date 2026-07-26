@@ -160,10 +160,13 @@ const ShopTab: React.FC<ShopTabProps> = ({ totalScore, hatState, onBuyHat, onEqu
       {/* Integrated Container */}
       <div className="w-full h-full flex flex-col lg:flex-row overflow-hidden relative">
           
-          {/* LEFT: 3D Showcase */}
-          <div className={`relative bg-black/20 border-b lg:border-b-0 lg:border-r border-white/10 shrink-0 flex flex-col items-center justify-center overflow-hidden
+          {/* LEFT: 3D Showcase Stage */}
+          <div className={`relative bg-slate-950/80 border-b lg:border-b-0 lg:border-r border-white/15 shrink-0 flex flex-col items-center justify-center overflow-hidden
               ${isMobile ? 'h-[40%] w-full' : 'w-[400px] h-full'}
           `}>
+             {/* Radial Stage Glow */}
+             <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_center,rgba(52,211,153,0.15)_0%,transparent_70%)] animate-pulse" />
+             
              {/* 3D Canvas */}
              <div className="w-full h-full relative z-10">
                  <Canvas 
@@ -199,9 +202,9 @@ const ShopTab: React.FC<ShopTabProps> = ({ totalScore, hatState, onBuyHat, onEqu
              {/* Info Overlay (Floating Price Tag for Locked Items) */}
              {activeTab === 'gear' && selectedHatInfo && selectedHatInfo.price > 0 && !isUnlocked && (
                  <div className="absolute bottom-6 w-full flex justify-center pointer-events-none z-20">
-                     <div className="inline-flex items-center gap-2 px-4 py-2 bg-black/80 rounded-full border border-white/20 shadow-lg backdrop-blur-sm animate-bounce">
-                         <span className="text-[10px] font-bold text-[var(--accent-yellow)] flex gap-1 items-center tracking-wide">
-                             <ICONS.Lock /> {totalScore >= selectedHatInfo.price ? 'Tap to Unlock' : 'Locked'}
+                     <div className="inline-flex items-center gap-2 px-4 py-2 bg-slate-900/90 rounded-full border border-amber-400/40 shadow-xl backdrop-blur-md animate-bounce">
+                         <span className="text-[10px] font-black text-amber-300 flex gap-1.5 items-center tracking-wider uppercase">
+                             <ICONS.Lock /> {totalScore >= selectedHatInfo.price ? 'Tap Card to Unlock' : 'Locked'}
                          </span>
                      </div>
                  </div>
@@ -209,20 +212,20 @@ const ShopTab: React.FC<ShopTabProps> = ({ totalScore, hatState, onBuyHat, onEqu
           </div>
 
           {/* RIGHT: Controls - Dark Glass */}
-          <div className="flex-1 flex flex-col min-h-0 bg-black/60 backdrop-blur-xl relative">
+          <div className="flex-1 flex flex-col min-h-0 bg-slate-950/70 backdrop-blur-2xl relative">
               
-              {/* Header (Standard Height h-16 lg:h-20) */}
-              <div className="h-16 lg:h-20 px-4 lg:px-6 bg-slate-900/40 backdrop-blur-xl border-b border-white/10 shrink-0 flex justify-between items-center z-10">
+              {/* Header */}
+              <div className="h-16 lg:h-20 px-4 lg:px-6 bg-slate-900/60 backdrop-blur-xl border-b border-white/10 shrink-0 flex justify-between items-center z-10">
                   <div className="flex items-center gap-3">
                       <div className="text-[var(--accent-magenta)] scale-125"><ICONS.Shop /></div>
                       <div>
-                          <h2 className="font-display text-xl sm:text-2xl font-black text-white tracking-wide">Savings Shop</h2>
-                          <p className="text-xs text-white/50 font-medium">Spend your coins wisely</p>
+                          <h2 className="font-display text-xl sm:text-2xl font-black text-white tracking-tight uppercase">Hero Armory</h2>
+                          <p className="text-xs text-slate-400 font-semibold">Customize Henry & unlock gear</p>
                       </div>
                   </div>
-                  <div className="flex items-center gap-1.5 text-amber-300 bg-amber-400/10 px-3 py-1.5 rounded-lg border border-amber-400/20 shadow-sm">
+                  <div className="flex items-center gap-2 text-amber-300 bg-amber-500/15 px-3.5 py-1.5 rounded-2xl border border-amber-400/30 shadow-lg">
                       <CoinIcon className="text-base" />
-                      <span className="font-black text-sm"><AnimatedNumber value={totalScore} /></span>
+                      <span className="font-black text-sm tracking-wide"><AnimatedNumber value={totalScore} /></span>
                   </div>
               </div>
               

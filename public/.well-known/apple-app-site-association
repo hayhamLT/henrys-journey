@@ -1,0 +1,19 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appIDs": [
+          "754C763QSJ.com.henrysjourney.app"
+        ],
+        "components": [
+          { "/": "/challenge/*", "comment": "Deep-link to a shared challenge" },
+          { "/": "/level/*", "comment": "Deep-link to a specific level" },
+          { "/": "/coop/*", "comment": "Deep-link to a co-op session" },
+          { "/": "/daily", "comment": "Deep-link to today's Daily Run" },
+          { "/": "/", "comment": "Home" }
+        ]
+      }
+    ]
+  }
+}

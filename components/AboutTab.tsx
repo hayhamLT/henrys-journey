@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { ICONS } from './icons';
 import { CoinIcon } from './CoinIcon';
 import { APP_VERSION } from '../constants/game';
+import { openExternalUrl } from '../utils/nativeBridge';
 
 const FeaturePill: React.FC<{ icon: React.ReactNode, label: string, color?: string }> = ({ icon, label, color = "text-white" }) => (
     <div className="flex items-center gap-2 bg-black/20 backdrop-blur-sm px-3 py-2.5 rounded-xl border border-white/5">
@@ -15,7 +16,7 @@ const AboutTab: React.FC = () => {
   const [shareText, setShareText] = useState("Share Game");
 
   const handleDonate = () => {
-      window.open('https://www.paypal.com/donate/?business=hayhamlt@gmail.com&no_recurring=0&currency_code=USD&amount=5', '_blank');
+      openExternalUrl('https://www.paypal.com/donate/?business=hayhamlt@gmail.com&no_recurring=0&currency_code=USD&amount=5');
   };
 
   const handleShare = async () => {

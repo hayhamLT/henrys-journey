@@ -1,7 +1,7 @@
 
 // ... (Imports remain the same)
 import { FirebaseApp, initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, signOut as firebaseSignOut, onAuthStateChanged, updateProfile, setPersistence, browserLocalPersistence, deleteUser, getRedirectResult } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider, OAuthProvider, signInWithPopup, signInWithRedirect, signOut as firebaseSignOut, onAuthStateChanged, updateProfile, setPersistence, browserLocalPersistence, deleteUser, getRedirectResult, signInWithCredential } from 'firebase/auth';
 import { getFirestore, doc, setDoc, onSnapshot, collection, query, orderBy, limit, getDocs, where, addDoc, updateDoc, startAt, endAt, deleteDoc, getDoc, documentId, runTransaction, increment, arrayUnion, arrayRemove, getCountFromServer, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, deleteField } from 'firebase/firestore';
 import { getAnalytics } from "firebase/analytics";
 import { UserProfile, GameInvite, CommunityLevel, Friend, LevelDataForShare, CoopGameState, MoveWithId, CustomLevelEntry, TournamentPlayer, CoopMessage, LeaderboardEntry, HatState, LevelResult, CharacterAppearance, Badge, DailyProgress } from './types';
@@ -251,8 +251,86 @@ export const subscribeAuth = (callback: (user: any) => void) => {
     });
 };
 
+// Capacitor / native iOS shell detection — pop-up OAuth is unreliable in
+// WebViews; use redirect instead so Google's flow completes cleanly.
+const isNativeShell = (): boolean => {
+    if (typeof window === 'undefined') return false;
+    const w = window as any;
+    return !!(w.Capacitor?.isNativePlatform?.() || w.webkit?.messageHandlers?.hj);
+};
+
+// Same "sync user doc" bootstrap both flows use after auth succeeds.
+async function syncUserDocAfterAuth(user: any): Promise<UserProfile> {
+    try {
+        if (db && user) {
+            const userDocRef = doc(db, 'users', user.uid);
+            const userDocSnap = await getDoc(userDocRef);
+            const existingData = userDocSnap.exists() ? userDocSnap.data() : {};
+            const displayName = user.displayName || 'Captain';
+            const updates: any = {
+                displayName,
+                searchName: displayName.toLowerCase(),
+                lastLogin: Date.now(),
+                email: deleteField(),
+            };
+            if (!existingData.photoURL) updates.photoURL = user.photoURL || '';
+            await setDoc(userDocRef, updates, { merge: true });
+            await setDoc(doc(db, 'users', user.uid, 'private', 'contact'),
+                { email: user.email || '' }, { merge: true });
+        }
+    } catch (e) {
+        console.error("[Auth] user-doc sync failed:", e);
+    }
+    return {
+        name: user.displayName || 'Captain',
+        email: user.email || '',
+        picture: user.photoURL || '',
+        uid: user.uid,
+    };
+}
+
 export const signInWithGoogle = async (preventFallback: boolean = false): Promise<UserProfile | null> => {
   if (!auth) throw new Error("Firebase Auth not initialized");
+
+  // Native (Capacitor iOS): use the native Google Sign-In SDK to obtain a
+  // Google credential, then sign that credential into the WEB Firebase SDK.
+  //
+  // WHY the two-step dance: the plugin's own Firebase login (skipNativeAuth:
+  // false) authenticates the NATIVE FirebaseAuth SDK, but every line of app
+  // code here (Firestore, auth state, onAuthStateChanged) runs against the
+  // WEB SDK (firebase/auth). Those are two separate auth sessions. If we let
+  // the plugin sign in natively, the web SDK stays logged-out and the very
+  // next Firestore write blocks forever on missing auth — that's the
+  // "Connecting…" hang after the Google sheet succeeds.
+  //
+  // Fix (the documented pattern): skipNativeAuth: true → the plugin ONLY runs
+  // the Google sheet and hands back an idToken. We exchange that for a web
+  // GoogleAuthProvider credential and sign into the web SDK ourselves, so
+  // auth.currentUser is populated and Firestore works.
+  if (isNativeShell()) {
+    const mod: any = await import('@capacitor-firebase/authentication').catch(() => null);
+    if (mod?.FirebaseAuthentication) {
+      try {
+        const result = await mod.FirebaseAuthentication.signInWithGoogle({ skipNativeAuth: true });
+        const idToken: string | undefined = result?.credential?.idToken;
+        const accessToken: string | undefined = result?.credential?.accessToken;
+        if (!idToken && !accessToken) {
+          throw new Error("Google sign-in returned no credential");
+        }
+        const cred = GoogleAuthProvider.credential(idToken ?? null, accessToken ?? null);
+        const webResult = await signInWithCredential(auth, cred);
+        return syncUserDocAfterAuth(webResult.user);
+      } catch (e: any) {
+        // User-cancelled the sheet → swallow quietly (empty message).
+        const msg = String(e?.message || e?.errorMessage || '');
+        if (/cancel/i.test(msg) || e?.code === '1001') {
+          throw new Error('');
+        }
+        console.error("[Auth/Google native]", e?.code, msg, e);
+        throw e;
+      }
+    }
+  }
 
   try {
     const result = await signInWithPopup(auth, googleProvider);

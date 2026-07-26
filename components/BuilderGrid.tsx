@@ -266,10 +266,36 @@ const BuilderCell: React.FC<{
                         touchAction: 'none' // Prevent browser scrolling while interacting
                     }}
                     // Pointer Events for custom Mobile/Desktop Move
-                    onPointerDown={(e) => onPointerDown(e, row, col, type)}
+                    onPointerDown={(e) => {
+                        onPointerDown(e, row, col, type);
+                        // iOS long-press → delete: right-click doesn't exist
+                        // on iPhone, so give touch users a 550ms hold gesture
+                        // that fires the same erase action as desktop right-click.
+                        if (e.pointerType === 'touch') {
+                            let handled = false;
+                            const t = window.setTimeout(() => {
+                                handled = true;
+                                onRightClick(e as any, row, col);
+                                try { (navigator as any).vibrate?.(20); } catch {}
+                            }, 550);
+                            const cancel = () => {
+                                if (!handled) window.clearTimeout(t);
+                                window.removeEventListener('pointerup', cancel);
+                                window.removeEventListener('pointercancel', cancel);
+                                window.removeEventListener('pointermove', onMove);
+                            };
+                            const onMove = (ev: PointerEvent) => {
+                                // Any real drag cancels the long-press.
+                                if (Math.abs(ev.movementX) + Math.abs(ev.movementY) > 4) cancel();
+                            };
+                            window.addEventListener('pointerup', cancel, { once: true });
+                            window.addEventListener('pointercancel', cancel, { once: true });
+                            window.addEventListener('pointermove', onMove);
+                        }
+                    }}
                     onPointerEnter={() => onHover(row, col)}
                     onPointerMove={() => onHover(row, col)}
-                    
+
                     // HTML5 Events for Toolbar Drop
                     onContextMenu={(e) => onRightClick(e, row, col)}
                     onDragEnter={handleDragEnter}

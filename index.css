@@ -670,6 +670,62 @@ body.is-dragging {
   }
 }
 
+/* ============================================================================
+ * ACCESSIBILITY: iOS-native affordances mirrored into CSS
+ * ============================================================================
+ * Dynamic Type — respect the user's iOS text-size setting when running in
+ * the native shell. The Capacitor plugin sets --ios-text-scale (1.0 default,
+ * 1.5 for large, up to 3.0 for accessibility sizes). Fall back to 1 on web. */
+:root {
+  --hj-text-scale: var(--ios-text-scale, 1);
+}
+body, button, input, textarea, select {
+  font-size: calc(1rem * var(--hj-text-scale));
+}
+h1 { font-size: calc(2rem * var(--hj-text-scale)); }
+h2 { font-size: calc(1.5rem * var(--hj-text-scale)); }
+h3 { font-size: calc(1.25rem * var(--hj-text-scale)); }
+
+/* High contrast — bump borders / text weight when the user has enabled
+ * "Increase Contrast" in iOS Settings. */
+@media (prefers-contrast: more) {
+  :root {
+    --accent-blue: #1d4ed8;
+    --accent-cyan: #06b6d4;
+    --accent-yellow: #ca8a04;
+  }
+  button, .modern-button, .modern-panel {
+    border-width: 2px !important;
+    font-weight: 800 !important;
+  }
+  .text-white\/40, .text-white\/50, .text-white\/60 {
+    color: rgba(255,255,255,0.85) !important;
+  }
+}
+
+/* Focus rings — visible for keyboard nav (iPad external keyboard, VoiceOver). */
+button:focus-visible, a:focus-visible, [role="button"]:focus-visible {
+  outline: 3px solid var(--accent-cyan);
+  outline-offset: 2px;
+}
+
+/* Screen readers only — visually hidden but announced by VoiceOver. */
+.sr-only {
+  position: absolute !important;
+  width: 1px !important; height: 1px !important;
+  padding: 0 !important; margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+/* Minimum touch target — 44×44pt per Apple HIG. */
+button, [role="button"], a.button, .modern-button, .icon-button {
+  min-width: 44px;
+  min-height: 44px;
+}
+
 .score-popup {
   position: absolute;
   font-family: var(--font-display);

@@ -6,32 +6,40 @@ interface LoginRequiredPanelProps {
   featureName: string;
   description: string;
   onLogin: () => Promise<void>;
+  onAppleLogin?: () => Promise<void>;
   onResetData?: () => void;
   variant?: 'dark' | 'light';
   onClose?: () => void;
 }
 
-const LoginRequiredPanel: React.FC<LoginRequiredPanelProps> = ({ featureName, description, onLogin, onResetData, variant = 'light', onClose }) => {
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+// Apple Human Interface Guidelines require Sign in with Apple to be given
+// EQUAL PROMINENCE to any other social sign-in option, so we show it above
+// or beside Google — never below or smaller.
+const isAppleDevice = (): boolean => {
+    if (typeof navigator === 'undefined') return false;
+    return /iPhone|iPad|iPod|Macintosh/i.test(navigator.userAgent);
+};
 
-  const handleLogin = async () => {
+const LoginRequiredPanel: React.FC<LoginRequiredPanelProps> = ({ featureName, description, onLogin, onAppleLogin, onResetData, variant = 'light', onClose }) => {
+  const [isLoading, setIsLoading] = useState<'' | 'google' | 'apple'>('');
+  const [error, setError] = useState<string | null>(null);
+  const showApple = !!onAppleLogin && isAppleDevice();
+
+  const runLogin = async (kind: 'google' | 'apple') => {
     if (isLoading) return;
-    setIsLoading(true);
+    setIsLoading(kind);
     setError(null);
     try {
-      await onLogin();
+      if (kind === 'apple' && onAppleLogin) await onAppleLogin();
+      else await onLogin();
     } catch (e: any) {
       console.error("Login failed:", e);
       let msg = e.message || "Login failed. Please try again.";
-      if (e.code === 'auth/popup-closed-by-user') {
-          msg = ""; 
-      } else if (msg.includes('unauthorized-domain')) {
-          msg = "Domain not authorized. Please check Firebase Console.";
-      }
+      if (e.code === 'auth/popup-closed-by-user' || e.code === '1001' /* Apple cancelled */) msg = "";
+      else if (msg.includes('unauthorized-domain')) msg = "Domain not authorized. Please check Firebase Console.";
       if (msg) setError(msg);
     } finally {
-      setIsLoading(false);
+      setIsLoading('');
     }
   };
 
@@ -75,12 +83,12 @@ const LoginRequiredPanel: React.FC<LoginRequiredPanelProps> = ({ featureName, de
               </div>
           )}
 
-          <button 
-            onClick={handleLogin}
-            disabled={isLoading}
+<button
+            onClick={() => runLogin('google')}
+            disabled={!!isLoading}
             className="modern-button w-full py-4 bg-[var(--accent-blue)] border-[var(--accent-blue-shade)] text-white font-black flex items-center justify-center gap-3 shadow-lg hover:shadow-blue-500/30 hover:bg-blue-500 hover:scale-[1.02] active:scale-100 transition-all disabled:opacity-70 disabled:cursor-wait text-sm rounded-xl"
           >
-            {isLoading ? (
+            {isLoading === 'google' ? (
                 <>
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                     <span>Connecting...</span>

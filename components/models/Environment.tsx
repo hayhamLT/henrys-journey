@@ -121,7 +121,7 @@ const useFloorVisuals = (theme: Theme, coords: [number, number] | undefined, pos
     // caps belong on TOP only, so a tile reads as a solid terrain block.
     const sideTexture = useMemo(() => getMatteTexture(sideColor), [sideColor]);
 
-    return { texture, sideTexture, color, sideColor, depth, bottomMeshY, rotationY: (Math.floor(seed * 1000) % 4) * (Math.PI / 2) };
+    return { texture, sideTexture, color, sideColor, depth, bottomMeshY, isHighlighted: isHighlighted || isInPlannedPath || isDragOver, rotationY: (Math.floor(seed * 1000) % 4) * (Math.PI / 2) };
 };
 
 const StaticFloor: React.FC<{ position: [number, number, number], visuals: any, opacity?: number }> = React.memo(({ position, visuals, opacity = 1 }) => {
@@ -131,6 +131,12 @@ const StaticFloor: React.FC<{ position: [number, number, number], visuals: any, 
                 <boxGeometry args={[0.95, 0.4, 0.95]} />
                 <meshStandardMaterial map={visuals.texture} color={visuals.color} roughness={0.85} metalness={0} transparent={opacity < 1} opacity={opacity} />
             </mesh>
+            {visuals.isHighlighted && (
+                <mesh position={[0, 0.02, 0]} rotation={[Math.PI / 2, 0, 0]}>
+                    <planeGeometry args={[0.88, 0.88]} />
+                    <meshBasicMaterial color="#34d399" transparent opacity={0.35} depthWrite={false} />
+                </mesh>
+            )}
             <mesh position={[0, visuals.bottomMeshY, 0]} rotation={[0, visuals.rotationY, 0]} receiveShadow={opacity === 1}>
                 <boxGeometry args={[0.92, visuals.depth, 0.92]} />
                 <meshStandardMaterial color={visuals.sideColor} map={visuals.sideTexture} roughness={0.92} metalness={0} transparent={opacity < 1} opacity={opacity} />

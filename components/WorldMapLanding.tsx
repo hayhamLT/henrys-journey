@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { WORLDS } from '../constants/game';
-import { MONEY_LESSONS, MONEY_LEVEL_BASE, MONEY_WORLD, getMoneyTipOfDay, interestRateLabel, currentSavingsGoal } from '../constants/finlit';
+import { MONEY_LESSONS, MONEY_LEVEL_BASE, MONEY_WORLD, getMoneyTipOfDay, currentSavingsGoal } from '../constants/finlit';
 import { CoinIcon, CoinAmount } from './CoinIcon';
 import { World, LevelResult, Theme } from '../types';
 import { ICONS } from './icons';
@@ -46,8 +46,6 @@ const getWorldProgress = (world: World, resultsByLevel: { [level: number]: Level
 
 const starsFor = (pct: number) => (pct >= 100 ? 3 : pct >= 60 ? 2 : pct >= 25 ? 1 : 0);
 
-// World stars reflect MASTERY (average medal), not mere completion — so the map
-// rewards replaying for Gold. Legacy clears (pre-medals) count as Bronze.
 const worldMedalStars = (world: World, resultsByLevel: { [level: number]: LevelResult }) => {
   const total = world.levels.length;
   if (!total) return 0;
@@ -65,18 +63,22 @@ const Star: React.FC<{ filled: boolean; color: string; size?: number }> = ({ fil
     <path
       d="M12 2.5l2.95 5.98 6.6.96-4.77 4.65 1.13 6.57L12 17.55l-5.9 3.1 1.13-6.57L2.46 9.44l6.6-.96L12 2.5z"
       fill={filled ? color : 'rgba(255,255,255,0.08)'}
-      stroke={filled ? color : 'rgba(255,255,255,0.14)'}
-      strokeWidth="1"
+      stroke={filled ? color : 'rgba(255,255,255,0.18)'}
+      strokeWidth="1.2"
     />
   </svg>
 );
 
-// A thin labelled progress bar reused everywhere.
-const Bar: React.FC<{ pct: number; color: string; track?: string }> = ({ pct, color, track = 'rgba(255,255,255,0.08)' }) => (
-  <div className="h-1.5 w-full overflow-hidden rounded-full" style={{ background: track }}>
+const Bar: React.FC<{ pct: number; color: string; track?: string; height?: string }> = ({ 
+  pct, 
+  color, 
+  track = 'rgba(255,255,255,0.08)',
+  height = 'h-2'
+}) => (
+  <div className={`${height} w-full overflow-hidden rounded-full relative`} style={{ background: track }}>
     <div
-      className="h-full rounded-full transition-[width] duration-700 ease-out"
-      style={{ width: `${pct}%`, background: color, boxShadow: pct > 0 ? `0 0 8px ${color}66` : 'none' }}
+      className="h-full rounded-full transition-[width] duration-700 ease-out relative"
+      style={{ width: `${pct}%`, background: color, boxShadow: pct > 0 ? `0 0 12px ${color}88` : 'none' }}
     />
   </div>
 );
@@ -87,16 +89,13 @@ const WorldMapLanding: React.FC<WorldMapLandingProps> = ({
   onSelectLevel,
   onContinue,
   userName,
-  quizCorrect = [],
   balance = 0,
-  earned = 0,
-  spent = 0,
   savedGoalPeak = 0,
   streak = 0,
   onOpenShop,
 }) => {
   const [expanded, setExpanded] = useState<number | null>(null);
-  const [moneyOpen, setMoneyOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'campaign' | 'mountain'>('campaign');
   const moneyTip = getMoneyTipOfDay();
 
   const totalLevels = WORLDS.reduce((n, w) => n + w.levels.length, 0);
@@ -106,18 +105,15 @@ const WorldMapLanding: React.FC<WorldMapLandingProps> = ({
   const campaignPercent = totalLevels ? Math.round((totalDone / totalLevels) * 100) : 0;
   const isFreshStart = currentLevelIndex === WORLDS[0]?.levels[0] && totalDone === 0;
 
-  // The world the player is currently in — drives the hero card's theme + copy.
   const currentWorldIdx = Math.max(0, WORLDS.findIndex(w => w.levels.includes(currentLevelIndex)));
   const currentWorld = WORLDS[currentWorldIdx] ?? WORLDS[0];
   const heroAccent = ACCENT[currentWorld.theme] ?? '#34d399';
   const levelInWorld = currentLevelIndex - currentWorld.levels[0] + 1;
   const heroProgress = getWorldProgress(currentWorld, resultsByLevel);
 
-  // Savings goal (piggy meter), now a slim glanceable bar.
   const goal = currentSavingsGoal(Math.max(savedGoalPeak, balance));
   const goalPct = Math.max(0, Math.min(100, Math.round((balance / goal) * 100)));
 
-  // Money Mountain — a parallel learning track, unlocks after the tutorial.
   const moneyUnlocked = (resultsByLevel[4]?.time || 0) > 0;
   const moneyDone = MONEY_WORLD.levels.filter(l => (resultsByLevel[l]?.time || 0) > 0).length;
   const moneyAccent = '#fbbf24';
@@ -135,308 +131,408 @@ const WorldMapLanding: React.FC<WorldMapLandingProps> = ({
   });
 
   return (
-    <div className="h-full w-full overflow-y-auto">
+    <div className="h-full w-full overflow-y-auto bg-slate-950 text-slate-100 select-none">
       <style>{`
-        @keyframes hj-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
-        @keyframes hj-shimmer { 0% { transform: translateX(-120%); } 55%,100% { transform: translateX(120%); } }
-        @keyframes hj-pulse { 0% { box-shadow: 0 0 0 0 currentColor; } 70% { box-shadow: 0 0 0 12px transparent; } 100% { box-shadow: 0 0 0 0 transparent; } }
-        .hj-rise { animation: hj-rise .5s cubic-bezier(.2,.8,.2,1) both; }
+        @keyframes hj-rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+        @keyframes hj-shimmer { 0% { transform: translateX(-120%); } 50%,100% { transform: translateX(120%); } }
+        @keyframes hj-pulse-glow { 0%, 100% { opacity: 0.4; transform: scale(1); } 50% { opacity: 0.9; transform: scale(1.08); } }
+        @keyframes hj-badge-pulse { 0%, 100% { box-shadow: 0 0 12px rgba(52,211,153,0.3); } 50% { box-shadow: 0 0 22px rgba(52,211,153,0.7); } }
+        .hj-rise { animation: hj-rise .45s cubic-bezier(.16,1,.3,1) both; }
+        .glass-panel { background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
+        .glass-card { background: rgba(30, 41, 59, 0.5); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
       `}</style>
 
-      <div className="mx-auto flex w-full max-w-lg md:max-w-xl flex-col gap-3 px-4 pb-28 pt-3 md:pb-6">
+      <div className="mx-auto flex w-full max-w-lg md:max-w-xl flex-col gap-4 px-4 pb-28 pt-4 md:pb-8">
 
-        {/* ── 1 · Top bar : avatar + greeting + coin chip ── */}
-        <div className="hj-rise flex items-center gap-3" style={{ animationDelay: '0ms' }}>
-          <div
-            className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl"
-            style={{ background: 'linear-gradient(135deg,#1e293b,#0f172a)', boxShadow: '0 0 0 1.5px rgba(52,211,153,0.4), 0 4px 14px rgba(16,185,129,0.3)' }}
-          >
-            <div className="scale-[2]"><ICONS.Bot /></div>
+        {/* ── 1 · TOP GAME HUD : Player Card & Stats Ticker ── */}
+        <div className="hj-rise glass-panel rounded-3xl border border-white/10 p-3.5 shadow-2xl" style={{ animationDelay: '0ms' }}>
+          <div className="flex items-center justify-between gap-3">
+            
+            {/* Player Info & Live Status */}
+            <div className="flex items-center gap-3 min-w-0">
+              <div
+                className="relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-emerald-400/40 bg-gradient-to-br from-slate-800 to-slate-950 shadow-lg"
+                style={{ animation: 'hj-badge-pulse 3s infinite' }}
+              >
+                <div className="scale-[2.2]"><ICONS.Bot /></div>
+                <span className="absolute bottom-0.5 right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-400 ring-2 ring-slate-950" />
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <h1 className="font-display truncate text-base font-black tracking-tight text-white">
+                    {userName || "Player 1"}
+                  </h1>
+                  <span className="shrink-0 rounded-md bg-emerald-500/15 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-widest text-emerald-400 border border-emerald-500/30">
+                    ONLINE
+                  </span>
+                </div>
+                <p className="truncate text-xs font-semibold text-slate-400">
+                  World {currentWorldIdx + 1} • {currentWorld.name}
+                </p>
+              </div>
+            </div>
+
+            {/* Currency & Streak HUD Badges */}
+            <div className="flex items-center gap-2 shrink-0">
+              {streak > 0 && (
+                <div className="flex items-center gap-1.5 rounded-2xl border border-orange-500/30 bg-orange-500/10 px-2.5 py-1.5 shadow-inner">
+                  <span className="text-orange-400 text-xs animate-bounce"><ICONS.Flame /></span>
+                  <span className="font-display text-xs font-black text-orange-300">{streak}</span>
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={onOpenShop}
+                className="flex items-center gap-2 rounded-2xl border border-amber-400/35 bg-gradient-to-r from-amber-500/15 to-amber-600/10 px-3 py-1.5 shadow-lg transition-transform active:scale-95 hover:border-amber-400/60"
+              >
+                <CoinIcon className="text-base" />
+                <span className="font-display text-sm font-black text-amber-300"><CoinAmount n={balance} /></span>
+              </button>
+            </div>
+
           </div>
-          <div className="min-w-0 flex-1">
-            <h1 className="font-display truncate text-lg font-black leading-tight text-white">
-              {userName ? `Hi, ${userName}!` : "Henry's Journey"}
-            </h1>
-            <p className="truncate text-xs font-semibold text-white/40">Earn, save &amp; spend smart</p>
-          </div>
+
+          {/* Savings Goal Progress Indicator */}
           <button
             type="button"
             onClick={onOpenShop}
-            className="flex shrink-0 items-center gap-2 rounded-full py-1.5 pl-2 pr-3 transition-transform active:scale-95"
-            style={{ background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.28)' }}
+            className="mt-3 flex w-full items-center gap-3 rounded-2xl border border-amber-400/20 bg-amber-500/5 px-3 py-2 text-left transition-colors hover:bg-amber-500/10"
           >
-            <span className="font-display text-sm font-black text-amber-200"><CoinAmount n={balance} /></span>
-            {streak > 0 && (
-              <span className="ml-0.5 flex items-center gap-0.5 text-[11px] font-black text-orange-300">
-                <ICONS.Flame /> {streak}
-              </span>
-            )}
+            <span className="text-lg" aria-hidden="true">🐷</span>
+            <div className="min-w-0 flex-1">
+              <div className="mb-1 flex items-center justify-between">
+                <span className="font-display text-[10px] font-black uppercase tracking-widest text-amber-300/80">Savings Goal</span>
+                <span className="text-[10px] font-bold text-slate-300"><CoinAmount n={balance} /> / {goal.toLocaleString()}</span>
+              </div>
+              <Bar pct={goalPct} color="linear-gradient(90deg, #fbbf24, #f59e0b)" track="rgba(255,255,255,0.06)" height="h-1.5" />
+            </div>
           </button>
         </div>
 
-        {/* ── 2 · Savings goal : one slim tappable line ── */}
-        <button
-          type="button"
-          onClick={onOpenShop}
-          className="hj-rise flex items-center gap-3 rounded-2xl px-3.5 py-2.5 text-left transition-transform active:scale-[0.99]"
-          style={{ animationDelay: '50ms', background: 'rgba(251,191,36,0.06)', border: '1px solid rgba(251,191,36,0.18)' }}
-        >
-          <span className="text-base" aria-hidden="true">🐷</span>
-          <div className="min-w-0 flex-1">
-            <div className="mb-1 flex items-center justify-between">
-              <span className="font-display text-[11px] font-black uppercase tracking-wide text-amber-200/90">Savings goal</span>
-              <span className="text-[11px] font-bold text-white/55"><CoinAmount n={balance} /> / {goal.toLocaleString()}</span>
-            </div>
-            <Bar pct={goalPct} color="linear-gradient(90deg,#fbbf24,#fcd34d)" track="rgba(0,0,0,0.3)" />
-          </div>
-        </button>
-
-        {/* ── 3 · HERO : continue your adventure ── */}
-        <button
-          type="button"
-          onClick={onContinue}
-          className="hj-rise group relative mt-1 overflow-hidden rounded-3xl p-4 text-left transition-all duration-150 active:translate-y-[2px] active:scale-[0.99]"
+        {/* ── 2 · HERO CAMPAIGN BANNER : Featured Play Button ── */}
+        <div
+          className="hj-rise group relative overflow-hidden rounded-3xl border p-5 text-left shadow-2xl transition-all duration-200"
           style={{
-            animationDelay: '100ms',
-            background: `linear-gradient(150deg, ${heroAccent}26 0%, rgba(15,23,42,0.85) 55%, rgba(15,23,42,0.95) 100%)`,
-            border: `1px solid ${heroAccent}55`,
-            boxShadow: `0 0 0 1px ${heroAccent}22, 0 10px 34px ${heroAccent}26`,
+            animationDelay: '70ms',
+            background: `radial-gradient(circle at 80% 20%, ${heroAccent}35 0%, rgba(15, 23, 42, 0.95) 75%)`,
+            borderColor: `${heroAccent}66`,
+            boxShadow: `0 12px 40px -10px ${heroAccent}40, inset 0 1px 0 rgba(255,255,255,0.2)`,
           }}
         >
-          {/* shimmer sweep */}
+          {/* Animated Background Shimmer */}
           <span
             className="pointer-events-none absolute inset-0"
-            style={{ background: 'linear-gradient(105deg, transparent 38%, rgba(255,255,255,0.10) 50%, transparent 62%)', animation: 'hj-shimmer 4.5s ease-in-out infinite' }}
+            style={{
+              background: 'linear-gradient(110deg, transparent 35%, rgba(255,255,255,0.12) 50%, transparent 65%)',
+              animation: 'hj-shimmer 4s ease-in-out infinite',
+            }}
           />
-          {/* glow blob */}
-          <span className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full blur-2xl" style={{ background: `${heroAccent}33` }} />
 
-          <div className="relative flex items-center gap-4">
+          {/* Ambient Glow Orb */}
+          <span
+            className="pointer-events-none absolute -right-12 -top-12 h-44 w-44 rounded-full blur-3xl"
+            style={{ background: heroAccent, animation: 'hj-pulse-glow 4s ease-in-out infinite' }}
+          />
+
+          <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="min-w-0 flex-1">
-              <div className="mb-1 flex items-center gap-2">
-                <span className="font-display text-[10px] font-black uppercase tracking-[0.18em]" style={{ color: heroAccent }}>
-                  {isFreshStart ? '▸ Start here' : '▸ Continue'}
+              <div className="mb-1.5 flex items-center gap-2">
+                <span
+                  className="font-display inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[9px] font-black uppercase tracking-widest shadow-sm"
+                  style={{ background: heroAccent, color: '#090d16' }}
+                >
+                  {isFreshStart ? 'NEW GAME' : 'CONTINUE CAMPAIGN'}
                 </span>
-                <div className="flex gap-0.5">
-                  {[0, 1, 2].map(i => <Star key={i} filled={i < worldMedalStars(currentWorld, resultsByLevel)} color={heroAccent} size={11} />)}
+                <div className="flex gap-1">
+                  {[0, 1, 2].map(i => (
+                    <Star key={i} filled={i < worldMedalStars(currentWorld, resultsByLevel)} color={heroAccent} size={12} />
+                  ))}
                 </div>
               </div>
-              <h2 className="font-display truncate text-xl font-black leading-tight text-white">{currentWorld.name}</h2>
-              <p className="mb-2.5 truncate text-xs font-semibold text-white/55">
-                {currentWorld.moneyConcept?.emoji} {currentWorld.moneyConcept?.title} · Level {Math.min(Math.max(levelInWorld, 1), currentWorld.levels.length)} of {currentWorld.levels.length}
+
+              <h2 className="font-display truncate text-2xl font-black leading-tight text-white tracking-tight">
+                {currentWorld.name}
+              </h2>
+              <p className="mb-3 truncate text-xs font-semibold text-slate-300">
+                Level {Math.min(Math.max(levelInWorld, 1), currentWorld.levels.length)} of {currentWorld.levels.length} • {currentWorld.gimmickTitle}
               </p>
-              <Bar pct={heroProgress.percent} color={heroAccent} />
+
+              <div className="max-w-xs">
+                <Bar pct={heroProgress.percent} color={heroAccent} height="h-2" />
+              </div>
             </div>
 
-            {/* big play orb */}
-            <span
-              className="relative flex h-16 w-16 shrink-0 items-center justify-center rounded-full"
-              style={{ background: `linear-gradient(160deg, ${heroAccent}, ${heroAccent}cc)`, boxShadow: `0 6px 18px ${heroAccent}66`, color: `${heroAccent}` }}
+            {/* Glowing 3D Play Button */}
+            <button
+              type="button"
+              onClick={onContinue}
+              className="relative self-end sm:self-center flex h-14 sm:h-16 items-center justify-center gap-3 rounded-2xl px-6 font-display text-sm font-black tracking-wider uppercase text-slate-950 shadow-2xl transition-all duration-150 active:scale-95 hover:scale-105"
+              style={{
+                background: `linear-gradient(135deg, #ffffff 0%, ${heroAccent} 100%)`,
+                boxShadow: `0 8px 25px ${heroAccent}88, inset 0 2px 0 #ffffff`,
+              }}
             >
-              <span className="absolute inset-0 rounded-full" style={{ animation: 'hj-pulse 2.6s ease-out infinite' }} />
-              <span className="scale-[1.6] text-slate-950"><ICONS.Play /></span>
-            </span>
+              <span>PLAY NOW</span>
+              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-950/20 text-slate-950">
+                <ICONS.Play />
+              </span>
+            </button>
           </div>
-        </button>
+        </div>
 
-        {/* ── 4 · Worlds ── */}
-        <div className="mt-2 flex items-center justify-between px-1">
-          <h3 className="font-display text-sm font-black uppercase tracking-wider text-white/70">Worlds</h3>
-          <span className="flex items-center gap-1.5 text-[11px] font-bold text-white/45">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" style={{ boxShadow: '0 0 6px #34d399' }} />
-            {totalDone}/{totalLevels} cleared · {campaignPercent}%
+        {/* ── 3 · LOBBY NAVIGATION TABS ── */}
+        <div className="hj-rise flex items-center justify-between border-b border-white/10 pb-2 pt-1" style={{ animationDelay: '120ms' }}>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setActiveTab('campaign')}
+              className={`font-display flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-black uppercase tracking-wider transition-all ${
+                activeTab === 'campaign'
+                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-lg'
+                  : 'text-slate-400 hover:text-slate-200 border border-transparent'
+              }`}
+            >
+              <span>Worlds</span>
+              <span className="rounded-md bg-slate-800 px-1.5 py-0.5 text-[10px] text-slate-300">
+                {WORLDS.length}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('mountain')}
+              className={`font-display flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-black uppercase tracking-wider transition-all ${
+                activeTab === 'mountain'
+                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-lg'
+                  : 'text-slate-400 hover:text-slate-200 border border-transparent'
+              }`}
+            >
+              <span>Event Track</span>
+              <span className="rounded-md bg-amber-500/20 px-1.5 py-0.5 text-[10px] text-amber-300">
+                10
+              </span>
+            </button>
+          </div>
+
+          <span className="text-[11px] font-bold text-slate-400">
+            {totalDone}/{totalLevels} Cleared ({campaignPercent}%)
           </span>
         </div>
 
-        <div className="flex flex-col gap-2.5">
-          {worldEntries.map(({ world, idx, progress, isLocked, defaultLevel, isCurrent }) => {
-            const accent = ACCENT[world.theme] ?? '#34d399';
-            const stars = worldMedalStars(world, resultsByLevel);
-            const isOpen = expanded === idx;
+        {/* ── 4 · CAMPAIGN WORLDS TAB ── */}
+        {activeTab === 'campaign' && (
+          <div className="flex flex-col gap-3">
+            {worldEntries.map(({ world, idx, progress, isLocked, defaultLevel, isCurrent }) => {
+              const accent = ACCENT[world.theme] ?? '#34d399';
+              const stars = worldMedalStars(world, resultsByLevel);
+              const isOpen = expanded === idx;
 
-            return (
-              <div
-                key={world.name}
-                className="hj-rise overflow-hidden rounded-2xl border transition-all duration-200"
-                style={{
-                  animationDelay: `${150 + idx * 35}ms`,
-                  borderColor: isLocked ? 'rgba(255,255,255,0.06)' : isCurrent ? `${accent}66` : 'rgba(255,255,255,0.08)',
-                  background: isLocked ? 'rgba(255,255,255,0.02)' : isCurrent ? `${accent}10` : 'rgba(255,255,255,0.04)',
-                  opacity: isLocked ? 0.6 : 1,
-                  boxShadow: isCurrent && !isLocked ? `0 0 0 1px ${accent}44, 0 6px 22px ${accent}1f` : 'none',
-                }}
-              >
-                <button
-                  type="button"
-                  disabled={isLocked}
-                  onClick={() => (isLocked ? undefined : setExpanded(isOpen ? null : idx))}
-                  className="flex w-full items-center gap-3.5 px-3.5 py-3 text-left transition-transform active:scale-[0.99]"
+              return (
+                <div
+                  key={world.name}
+                  className="hj-rise glass-card overflow-hidden rounded-2xl border transition-all duration-200"
+                  style={{
+                    animationDelay: `${140 + idx * 30}ms`,
+                    borderColor: isLocked
+                      ? 'rgba(255,255,255,0.06)'
+                      : isCurrent
+                      ? `${accent}77`
+                      : 'rgba(255,255,255,0.1)',
+                    boxShadow: isCurrent && !isLocked ? `0 0 20px ${accent}25` : 'none',
+                    opacity: isLocked ? 0.55 : 1,
+                  }}
                 >
-                  {/* medallion */}
-                  <span
-                    className="font-display flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-base font-black"
-                    style={{
-                      background: isLocked ? 'rgba(255,255,255,0.05)' : `linear-gradient(150deg, ${accent}33, ${accent}14)`,
-                      color: isLocked ? 'rgba(255,255,255,0.3)' : accent,
-                      boxShadow: isLocked ? 'none' : `inset 0 0 0 1px ${accent}44`,
-                    }}
+                  <button
+                    type="button"
+                    disabled={isLocked}
+                    onClick={() => (isLocked ? undefined : setExpanded(isOpen ? null : idx))}
+                    className="flex w-full items-center gap-4 p-3.5 text-left transition-colors hover:bg-white/5"
                   >
-                    {isLocked ? <ICONS.Lock /> : idx + 1}
-                  </span>
+                    {/* World Medallion Badge */}
+                    <div
+                      className="font-display flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-base font-black shadow-md border"
+                      style={{
+                        background: isLocked ? 'rgba(255,255,255,0.04)' : `linear-gradient(135deg, ${accent}33, ${accent}10)`,
+                        color: isLocked ? 'rgba(255,255,255,0.3)' : accent,
+                        borderColor: isLocked ? 'rgba(255,255,255,0.08)' : `${accent}55`,
+                      }}
+                    >
+                      {isLocked ? <ICONS.Lock /> : idx + 1}
+                    </div>
 
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className={`font-display truncate text-[15px] font-black ${isLocked ? 'text-white/45' : 'text-white'}`}>
-                        {world.name}
-                      </span>
-                      {isCurrent && !isLocked && (
-                        <span className="shrink-0 rounded-full px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wide" style={{ background: `${accent}30`, color: accent }}>
-                          here
+                    {/* World Details */}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <span className={`font-display truncate text-base font-black ${isLocked ? 'text-slate-500' : 'text-white'}`}>
+                          {world.name}
                         </span>
+                        {isCurrent && !isLocked && (
+                          <span className="shrink-0 rounded-md px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wider" style={{ background: `${accent}30`, color: accent }}>
+                            CURRENT
+                          </span>
+                        )}
+                      </div>
+
+                      {isLocked ? (
+                        <p className="text-xs font-semibold text-slate-500">Complete previous world to unlock</p>
+                      ) : (
+                        <div className="flex items-center gap-3 mt-1">
+                          <div className="flex-1">
+                            <Bar pct={progress.percent} color={accent} height="h-1.5" />
+                          </div>
+                          <span className="text-[10px] font-bold text-slate-400 shrink-0">
+                            {progress.completed}/{progress.total}
+                          </span>
+                        </div>
                       )}
                     </div>
-                    {isLocked ? (
-                      <p className="mt-0.5 truncate text-[11px] font-semibold text-white/35">Clear the world before to unlock</p>
-                    ) : (
-                      <>
-                        <p className="mt-0.5 mb-1.5 truncate text-[11px] font-semibold text-white/45">
-                          {world.moneyConcept?.emoji} {world.moneyConcept?.title}
-                        </p>
-                        <div className="flex items-center gap-2">
-                          <div className="flex-1"><Bar pct={progress.percent} color={accent} /></div>
-                          <span className="shrink-0 text-[10px] font-bold text-white/40">{progress.completed}/{progress.total}</span>
-                        </div>
-                      </>
-                    )}
-                  </div>
 
-                  {!isLocked && (
-                    <div className="flex shrink-0 flex-col items-end gap-1.5">
-                      <div className="flex gap-0.5">{[0, 1, 2].map(i => <Star key={i} filled={i < stars} color={accent} />)}</div>
-                      <span className={`text-white/30 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}><ICONS.Up /></span>
+                    {/* Stars & Toggle */}
+                    {!isLocked && (
+                      <div className="flex shrink-0 items-center gap-3">
+                        <div className="flex gap-0.5">
+                          {[0, 1, 2].map(i => <Star key={i} filled={i < stars} color={accent} size={11} />)}
+                        </div>
+                        <span className={`text-slate-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}>
+                          <ICONS.Up />
+                        </span>
+                      </div>
+                    )}
+                  </button>
+
+                  {/* Expanded Stage Grid */}
+                  {isOpen && !isLocked && (
+                    <div className="border-t border-white/10 bg-slate-950/60 p-4">
+                      <div className="mb-3 flex items-center justify-between">
+                        <span className="font-display text-[10px] font-black uppercase tracking-widest text-slate-400">
+                          {world.gimmickTitle || 'Level Stages'}
+                        </span>
+                        <span className="text-xs font-bold text-slate-400">
+                          {progress.completed} of {progress.total} Cleared
+                        </span>
+                      </div>
+
+                      <div className="mb-4 grid grid-cols-5 gap-2 sm:grid-cols-10">
+                        {world.levels.map((levelIdx, li) => {
+                          const done = (resultsByLevel[levelIdx]?.time || 0) > 0;
+                          const isActiveLevel = levelIdx === currentLevelIndex;
+                          return (
+                            <button
+                              key={levelIdx}
+                              onClick={() => onSelectLevel(levelIdx)}
+                              title={`Level ${li + 1}`}
+                              className="font-display flex h-10 w-full items-center justify-center rounded-xl text-xs font-black transition-all active:scale-90 border"
+                              style={{
+                                background: isActiveLevel ? accent : done ? `${accent}20` : 'rgba(255,255,255,0.04)',
+                                color: isActiveLevel ? '#090d16' : done ? accent : 'rgba(255,255,255,0.4)',
+                                borderColor: isActiveLevel ? accent : done ? `${accent}40` : 'rgba(255,255,255,0.08)',
+                                boxShadow: isActiveLevel ? `0 0 12px ${accent}66` : 'none',
+                              }}
+                            >
+                              {li + 1}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      <button
+                        onClick={() => onSelectLevel(defaultLevel)}
+                        className="font-display flex w-full items-center justify-center gap-2 rounded-xl py-3 text-xs font-black uppercase tracking-wider transition-all active:scale-98"
+                        style={{ background: `${accent}25`, color: accent, border: `1px solid ${accent}55` }}
+                      >
+                        <ICONS.Play /> Enter World {idx + 1}
+                      </button>
                     </div>
                   )}
-                </button>
-
-                {/* expanded : gimmick + level dots + play */}
-                {isOpen && !isLocked && (
-                  <div className="border-t px-3.5 py-3" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
-                    <p className="mb-2.5 text-[10px] font-black uppercase tracking-widest text-white/35">{world.gimmickTitle}</p>
-                    <div className="mb-3 flex flex-wrap gap-1.5">
-                      {world.levels.map((levelIdx, li) => {
-                        const done = (resultsByLevel[levelIdx]?.time || 0) > 0;
-                        const isActiveLevel = levelIdx === currentLevelIndex;
-                        return (
-                          <button
-                            key={levelIdx}
-                            onClick={() => onSelectLevel(levelIdx)}
-                            title={`Level ${li + 1}`}
-                            className="font-display h-8 w-8 rounded-xl text-[12px] font-black transition-transform duration-150 active:scale-90"
-                            style={{
-                              background: isActiveLevel ? accent : done ? `${accent}2e` : 'rgba(255,255,255,0.06)',
-                              color: isActiveLevel ? '#0f172a' : done ? accent : 'rgba(255,255,255,0.3)',
-                              boxShadow: isActiveLevel ? `0 2px 0 ${accent}99` : 'none',
-                            }}
-                          >
-                            {li + 1}
-                          </button>
-                        );
-                      })}
-                    </div>
-                    <button
-                      onClick={() => onSelectLevel(defaultLevel)}
-                      className="font-display flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-black transition-transform active:scale-[0.98]"
-                      style={{ background: `${accent}22`, color: accent, border: `1.5px solid ${accent}44` }}
-                    >
-                      <span className="scale-90"><ICONS.Play /></span> Play World {idx + 1}
-                    </button>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        {/* ── 5 · Money Mountain : special bonus track ── */}
-        <div
-          className="hj-rise mt-1 overflow-hidden rounded-2xl border transition-all duration-200"
-          style={{
-            animationDelay: '520ms',
-            borderColor: moneyUnlocked ? 'rgba(251,191,36,0.3)' : 'rgba(255,255,255,0.06)',
-            background: moneyUnlocked ? 'rgba(251,191,36,0.05)' : 'rgba(255,255,255,0.02)',
-            opacity: moneyUnlocked ? 1 : 0.6,
-            boxShadow: moneyUnlocked ? '0 0 0 1px rgba(251,191,36,0.15), 0 4px 20px rgba(251,191,36,0.08)' : 'none',
-          }}
-        >
-          <button
-            type="button"
-            disabled={!moneyUnlocked}
-            onClick={() => moneyUnlocked && setMoneyOpen(o => !o)}
-            className="flex w-full items-center gap-3.5 px-3.5 py-3 text-left transition-transform active:scale-[0.99]"
-          >
-            <span
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-lg"
-              style={{ background: moneyUnlocked ? 'linear-gradient(150deg,rgba(251,191,36,0.3),rgba(251,191,36,0.12))' : 'rgba(255,255,255,0.05)', boxShadow: moneyUnlocked ? 'inset 0 0 0 1px rgba(251,191,36,0.4)' : 'none' }}
-            >
-              {moneyUnlocked ? <CoinIcon className="text-xl" /> : <ICONS.Lock />}
-            </span>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <span className={`font-display truncate text-[15px] font-black ${moneyUnlocked ? 'text-white' : 'text-white/45'}`}>{MONEY_WORLD.name}</span>
-                <span className="shrink-0 rounded-full px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wide" style={{ background: 'rgba(251,191,36,0.2)', color: moneyAccent }}>Learn &amp; Earn</span>
-              </div>
-              {moneyUnlocked ? (
-                <div className="mt-1.5 flex items-center gap-2">
-                  <div className="flex-1"><Bar pct={(moneyDone / MONEY_LESSONS.length) * 100} color={moneyAccent} /></div>
-                  <span className="shrink-0 text-[10px] font-bold text-white/40">{moneyDone}/{MONEY_LESSONS.length}</span>
                 </div>
-              ) : (
-                <p className="mt-0.5 text-[11px] font-semibold text-white/40">Finish the tutorial to unlock</p>
-              )}
-            </div>
-            {moneyUnlocked && <span className={`shrink-0 text-white/30 transition-transform duration-200 ${moneyOpen ? 'rotate-180' : ''}`}><ICONS.Up /></span>}
-          </button>
+              );
+            })}
+          </div>
+        )}
 
-          {moneyOpen && moneyUnlocked && (
-            <div className="border-t px-3.5 py-3" style={{ borderColor: 'rgba(251,191,36,0.12)' }}>
-              <p className="mb-2.5 text-[10px] font-black uppercase tracking-widest text-amber-300/55">10 money lessons · earn bonus coins</p>
-              <div className="mb-3 flex flex-col gap-1.5">
-                {MONEY_LESSONS.map((lesson, i) => {
-                  const levelIdx = MONEY_LEVEL_BASE + i;
-                  const done = (resultsByLevel[levelIdx]?.time || 0) > 0;
-                  const unlocked = isLessonUnlocked(i);
-                  const bonusEarned = quizCorrect.includes(i);
-                  return (
-                    <button
-                      key={levelIdx}
-                      disabled={!unlocked}
-                      onClick={() => onSelectLevel(levelIdx)}
-                      className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-left transition-transform duration-150 active:scale-[0.98] disabled:opacity-40"
-                      style={{ background: done ? 'rgba(251,191,36,0.1)' : 'rgba(255,255,255,0.04)', border: `1px solid ${done ? 'rgba(251,191,36,0.25)' : 'rgba(255,255,255,0.08)'}` }}
-                    >
-                      <span className="text-base">{unlocked ? lesson.emoji : '🔒'}</span>
-                      <span className={`font-display flex-1 truncate text-xs font-bold ${done ? 'text-amber-200' : 'text-white/70'}`}>{i + 1}. {lesson.title}</span>
-                      {done && <span className="text-[10px] font-bold text-emerald-400">✓</span>}
-                      {bonusEarned && <span title="Lesson bonus earned" className="flex items-center"><CoinIcon className="text-xs" /></span>}
-                    </button>
-                  );
-                })}
+        {/* ── 5 · EVENT TRACK TAB (Money Mountain) ── */}
+        {activeTab === 'mountain' && (
+          <div
+            className="hj-rise glass-panel overflow-hidden rounded-3xl border p-4 shadow-2xl transition-all"
+            style={{
+              animationDelay: '140ms',
+              borderColor: moneyUnlocked ? 'rgba(251,191,36,0.4)' : 'rgba(255,255,255,0.1)',
+              boxShadow: moneyUnlocked ? '0 0 30px rgba(251,191,36,0.15)' : 'none',
+            }}
+          >
+            <div className="flex items-center justify-between gap-4 mb-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500/20 border border-amber-400/40 text-amber-300 text-xl shadow-lg">
+                  <CoinIcon className="text-2xl" />
+                </div>
+                <div>
+                  <h3 className="font-display text-lg font-black text-white">{MONEY_WORLD.name}</h3>
+                  <p className="text-xs font-semibold text-amber-300/80">Special Puzzle Challenge Track</p>
+                </div>
               </div>
-              <button
-                onClick={() => onSelectLevel(firstUnfinishedLesson)}
-                className="font-display w-full rounded-xl py-2.5 text-sm font-black transition-transform active:scale-[0.98]"
-                style={{ background: 'rgba(251,191,36,0.18)', color: moneyAccent, border: '1.5px solid rgba(251,191,36,0.35)' }}
-              >
-                {moneyDone === 0 ? 'Start Learning' : moneyDone >= MONEY_LESSONS.length ? 'Play Again' : 'Continue Learning'}
-              </button>
+              <span className="rounded-full bg-amber-500/20 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-amber-300 border border-amber-500/30">
+                EVENT
+              </span>
             </div>
-          )}
-        </div>
 
-        {/* ── 6 · Money tip : subtle footer line ── */}
-        <p className="hj-rise mt-1 px-1 text-center text-[11px] font-medium leading-relaxed text-white/35" style={{ animationDelay: '560ms' }}>
+            {moneyUnlocked ? (
+              <div className="flex flex-col gap-2">
+                <div className="mb-2">
+                  <div className="flex justify-between text-xs font-bold text-slate-400 mb-1">
+                    <span>Track Mastery</span>
+                    <span>{moneyDone} / {MONEY_LESSONS.length} Cleared</span>
+                  </div>
+                  <Bar pct={(moneyDone / MONEY_LESSONS.length) * 100} color={moneyAccent} height="h-2" />
+                </div>
+
+                <div className="flex flex-col gap-2 mt-2">
+                  {MONEY_LESSONS.map((lesson, i) => {
+                    const levelIdx = MONEY_LEVEL_BASE + i;
+                    const done = (resultsByLevel[levelIdx]?.time || 0) > 0;
+                    const unlocked = isLessonUnlocked(i);
+                    return (
+                      <button
+                        key={levelIdx}
+                        disabled={!unlocked}
+                        onClick={() => onSelectLevel(levelIdx)}
+                        className="flex items-center gap-3 rounded-2xl px-3.5 py-3 text-left transition-all active:scale-[0.98] disabled:opacity-40 border"
+                        style={{
+                          background: done ? 'rgba(251,191,36,0.1)' : 'rgba(255,255,255,0.03)',
+                          borderColor: done ? 'rgba(251,191,36,0.3)' : 'rgba(255,255,255,0.08)',
+                        }}
+                      >
+                        <span className="text-lg">{unlocked ? lesson.emoji : '🔒'}</span>
+                        <span className={`font-display flex-1 truncate text-xs font-bold ${done ? 'text-amber-200' : 'text-slate-300'}`}>
+                          {i + 1}. {lesson.title}
+                        </span>
+                        {done && <span className="text-xs font-bold text-emerald-400">✓ CLEARED</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <button
+                  onClick={() => onSelectLevel(firstUnfinishedLesson)}
+                  className="mt-3 font-display flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 text-xs font-black uppercase tracking-wider text-slate-950 shadow-xl transition-all active:scale-98"
+                  style={{ background: 'linear-gradient(135deg, #fbbf24, #f59e0b)' }}
+                >
+                  <ICONS.Play /> {moneyDone === 0 ? 'START TRACK' : 'CONTINUE TRACK'}
+                </button>
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-white/10 bg-slate-900/50 p-4 text-center">
+                <p className="text-xs font-semibold text-slate-400">Complete the initial tutorial levels to unlock the Event Track.</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── 6 · FOOTER TIP ── */}
+        <p className="hj-rise mt-2 px-2 text-center text-xs font-medium leading-relaxed text-slate-500" style={{ animationDelay: '200ms' }}>
           💡 {moneyTip}
         </p>
+
       </div>
     </div>
   );

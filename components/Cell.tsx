@@ -422,6 +422,19 @@ const Cell: React.FC<CellProps> = (props) => {
           onDragEnd={(e) => onCellDragEnd && onCellDragEnd(e, type, {row: rowIndex, col: colIndex})}
           onClick={() => onCellClick && onCellClick(rowIndex, colIndex)}
           onContextMenu={(e) => onCellContextMenu && onCellContextMenu(e, rowIndex, colIndex)}
+          onTouchStart={(e) => {
+              // iOS long-press equivalent for onContextMenu (mirrors BuilderGrid).
+              if (!onCellContextMenu) return;
+              const t = window.setTimeout(() => {
+                  onCellContextMenu(e as any, rowIndex, colIndex);
+                  try { (navigator as any).vibrate?.(20); } catch {}
+              }, 550);
+              const cancel = () => { window.clearTimeout(t); };
+              const el = e.currentTarget;
+              el.addEventListener('touchend', cancel, { once: true });
+              el.addEventListener('touchcancel', cancel, { once: true });
+              el.addEventListener('touchmove', cancel, { once: true });
+          }}
           onMouseEnter={() => onHoleHover && onHoleHover({row: rowIndex, col: colIndex})}
         >
            {showScorePopup && (

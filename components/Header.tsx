@@ -226,7 +226,7 @@ const Header: React.FC<HeaderProps> = ({
           onClose={() => setShowNotification(false)}
         />
       )}
-      <header className="pointer-events-auto w-full bg-black/20 backdrop-blur-2xl border-b border-white/5 flex flex-row items-stretch h-16 lg:h-20 select-none overflow-hidden text-white pt-safe shadow-lg transition-colors duration-500">
+      <header className="pointer-events-auto w-full bg-black/20 backdrop-blur-2xl border-b border-white/5 flex flex-row items-stretch h-[calc(4rem+var(--sat))] lg:h-[calc(5rem+var(--sat))] select-none overflow-hidden text-white pt-safe shadow-lg transition-colors duration-500">
         <button
           onClick={() => {
             if (challengeMode === 'daily' && onOpenDailyHub) onOpenDailyHub();

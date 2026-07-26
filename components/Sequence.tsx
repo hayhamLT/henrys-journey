@@ -122,7 +122,7 @@ const Sequence: React.FC<SequenceProps> = ({ sequence, isExecuting, failedMoveIn
 
   return (
     <div 
-        className={`w-full bg-black/20 backdrop-blur-2xl border-t border-white/5 flex flex-row items-stretch h-20 sm:h-20 select-none overflow-hidden transition-[box-shadow,border-color] duration-300 pb-safe ${isFailure ? 'shadow-[0_-4px_20px_rgba(239,68,68,0.3)] border-red-500/30' : ''}`}
+        className={`w-full bg-slate-950/80 backdrop-blur-2xl border-t border-white/15 flex flex-row items-stretch h-20 sm:h-20 select-none overflow-hidden transition-all duration-300 pb-safe shadow-[0_-10px_35px_rgba(0,0,0,0.6)] ${isFailure ? 'shadow-[0_-8px_30px_rgba(239,68,68,0.4)] border-red-500/40' : isSuccess ? 'shadow-[0_-8px_30px_rgba(251,191,36,0.3)] border-amber-500/40' : ''}`}
     >
       
       {/* Auto Solver Button - Section 1 */}
@@ -241,7 +241,7 @@ const Sequence: React.FC<SequenceProps> = ({ sequence, isExecuting, failedMoveIn
       </div>
 
       {/* Undo & Run/Retry Buttons - Section 3 (Right) */}
-      <div className="shrink-0 flex items-center h-full border-l border-white/5 bg-transparent">
+      <div className="shrink-0 flex items-center h-full border-l border-white/10 bg-transparent">
           <button
               onClick={() => {
                   triggerHaptic('light');
@@ -249,9 +249,9 @@ const Sequence: React.FC<SequenceProps> = ({ sequence, isExecuting, failedMoveIn
               }}
               disabled={isExecuting || !hasSequence || (isTutorialActive && highlightedButton !== 'undo') || isLoading || isAutoplayActive}
               aria-label="Undo"
-              className={`h-full w-14 sm:w-16 flex flex-col items-center justify-center hover:bg-white/5 group border-r border-white/5 transition-colors ${highlightedButton === 'undo' ? 'bg-red-500/20 animate-pulse' : ''}`}
+              className={`h-full w-14 sm:w-16 flex flex-col items-center justify-center hover:bg-white/10 active:scale-95 group border-r border-white/10 transition-all duration-150 ${highlightedButton === 'undo' ? 'bg-red-500/20 animate-pulse' : ''}`}
           >
-              <div className="text-white/40 group-hover:text-red-400 transition-colors scale-90 sm:scale-100">
+              <div className="text-white/40 group-hover:text-red-400 group-hover:scale-110 transition-all duration-150 scale-90 sm:scale-100">
                   <ICONS.Backspace />
               </div>
           </button>
@@ -268,18 +268,18 @@ const Sequence: React.FC<SequenceProps> = ({ sequence, isExecuting, failedMoveIn
               disabled={isExecuting || (isTutorialActive && highlightedButton !== 'run') || isLoading || isAutoplayActive}
               aria-label={isFailure ? "Retry" : isSuccess ? "Replay" : "Run"}
               title={isFailure ? "Retry Level" : isSuccess ? "Replay to beat your best" : "Hold Shift + Click to Record"}
-              className={`h-full w-16 sm:w-20 flex flex-col items-center justify-center hover:bg-white/5 group transition-colors outline-none
-                ${highlightedButton === 'run' ? 'bg-green-500/20 animate-pulse' : ''}
-                ${isAutoplayActive ? 'bg-cyan-500/20' : ''}
-                ${isFailure ? 'bg-red-500/10 hover:bg-red-500/20 border-t-2 border-red-500/30' : ''}
-                ${isSuccess ? 'bg-amber-500/10 hover:bg-amber-500/20 border-t-2 border-amber-400/30' : ''}
+              className={`h-full w-16 sm:w-20 flex flex-col items-center justify-center hover:bg-white/10 active:scale-95 group transition-all duration-150 outline-none
+                ${highlightedButton === 'run' ? 'bg-emerald-500/25 animate-pulse shadow-[0_0_20px_rgba(16,185,129,0.4)]' : ''}
+                ${isAutoplayActive ? 'bg-cyan-500/25' : ''}
+                ${isFailure ? 'bg-red-500/20 hover:bg-red-500/30 border-t-2 border-red-500/50 shadow-[0_0_20px_rgba(239,68,68,0.4)]' : ''}
+                ${isSuccess ? 'bg-amber-500/20 hover:bg-amber-500/30 border-t-2 border-amber-400/50 shadow-[0_0_20px_rgba(251,191,36,0.4)]' : ''}
                 `}
           >
-              <div className={`transition-colors scale-90 sm:scale-105
+              <div className={`transition-all duration-150 group-hover:scale-110
                 ${isAutoplayActive ? 'text-[var(--accent-cyan)] animate-pulse' :
                   (isFailure ? 'text-[var(--accent-red)] animate-pulse scale-110' :
                   (isSuccess ? 'text-[var(--accent-yellow)]' :
-                  (isReady || isGhostAtEnd ? 'text-[var(--accent-green)]' : 'text-white/40 group-hover:text-[var(--accent-green)]')))}`}>
+                  (isReady || isGhostAtEnd ? 'text-[var(--accent-green)] drop-shadow-[0_0_8px_rgba(52,211,153,0.8)]' : 'text-white/40 group-hover:text-[var(--accent-green)]')))}`}>
                   {isRetryable ? <ICONS.Retry /> : <ICONS.Play />}
               </div>
           </button>

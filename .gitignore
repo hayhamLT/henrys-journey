@@ -57,3 +57,7 @@ Thumbs.db
 # Dropbox conflict artifacts
 *conflicted copy*
 *Conflict*
+
+# Local AI settings
+.claude/*.local.json
+
