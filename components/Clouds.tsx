@@ -70,9 +70,8 @@ export const VoxelCloud: React.FC<VoxelCloudProps> = ({ style, variant = 1, para
 };
 
 export const GameClouds: React.FC<{ density?: 'normal' | 'low' }> = ({ density = 'normal' }) => (
-  // Kept very subtle (0.07) so the parallax clouds read as ambient atmosphere
-  // BEHIND content without bleeding through translucent glass cards.
-  <div className="absolute inset-0 pointer-events-none overflow-hidden z-0 opacity-[0.07]">
+  // Ambient parallax clouds floating behind glass panels
+  <div className="absolute inset-0 pointer-events-none overflow-hidden z-0 opacity-20">
       {/* 
           Parallax Factors:
           Higher factor (e.g. 0.8) = Closer to camera (moves faster)

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { WORLDS } from '../constants/game';
 import { MONEY_LESSONS, MONEY_LEVEL_BASE, MONEY_WORLD, getMoneyTipOfDay, currentSavingsGoal } from '../constants/finlit';
 import { CoinIcon, CoinAmount } from './CoinIcon';
@@ -98,6 +98,21 @@ const WorldMapLanding: React.FC<WorldMapLandingProps> = ({
   const [activeTab, setActiveTab] = useState<'campaign' | 'mountain'>('campaign');
   const moneyTip = getMoneyTipOfDay();
 
+  // Handle Scroll for Parallax Clouds
+  useEffect(() => {
+    document.body.style.setProperty('--scroll-y', '0px');
+    return () => {
+      document.body.style.setProperty('--scroll-y', '0px');
+    };
+  }, []);
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const scrollTop = e.currentTarget.scrollTop;
+    requestAnimationFrame(() => {
+      document.body.style.setProperty('--scroll-y', `${scrollTop}px`);
+    });
+  };
+
   const totalLevels = WORLDS.reduce((n, w) => n + w.levels.length, 0);
   const totalDone = WORLDS.reduce(
     (n, w) => n + w.levels.filter(l => (resultsByLevel[l]?.time || 0) > 0).length, 0
@@ -131,7 +146,7 @@ const WorldMapLanding: React.FC<WorldMapLandingProps> = ({
   });
 
   return (
-    <div className="h-full w-full overflow-y-auto bg-slate-950 text-slate-100 select-none">
+    <div onScroll={handleScroll} className="h-full w-full overflow-y-auto bg-transparent text-slate-100 select-none">
       <style>{`
         @keyframes hj-rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
         @keyframes hj-shimmer { 0% { transform: translateX(-120%); } 50%,100% { transform: translateX(120%); } }
