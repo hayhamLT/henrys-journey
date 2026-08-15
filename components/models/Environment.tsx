@@ -32,13 +32,17 @@ export const WallBlock: React.FC<{ position: [number, number, number], coords?: 
     }, [finalSeed]);
 
     // Slight per-block height + a quarter-turn so a wall run doesn't look extruded.
-    const height = useMemo(() => 0.9 + rand(88) * 0.35, [rand]);
+    const height = useMemo(() => 0.92 + rand(88) * 0.3, [rand]);
     const rotY = useMemo(() => (Math.floor(rand(5) * 4) * Math.PI) / 2, [rand]);
 
     const tileStyle = palette.tileStyle || 'grass';
     const capTex = useMemo(() => getCapTexture(tileStyle, palette.wall), [tileStyle, palette.wall]);
     const sideColor = useMemo(() => tintColor(palette.wall, '#000000', 0.28), [palette.wall]);
     const sideTex = useMemo(() => getMatteTexture(sideColor), [sideColor]);
+
+    // Biome-specific detail flags
+    const hasDetail = useMemo(() => rand(42) > 0.45, [rand]);
+    const detailOffset = useMemo(() => (rand(77) - 0.5) * 0.4, [rand]);
 
     // Small recoil when the walker bumps the wall (isWallHit feedback).
     useFrame((state) => {
@@ -48,21 +52,131 @@ export const WallBlock: React.FC<{ position: [number, number, number], coords?: 
     });
 
     const capY = height - 0.4 - 0.06; // cap sits flush on top of the body
+
     return (
         <group position={[position[0], 0, position[2]]} rotation={[0, rotY, 0]} ref={groupRef}>
-            {/* body — matte sides, slightly inset so the cap reads as an overhang */}
+            {/* Main body — matte sides, slightly inset so the cap reads as an overhang */}
             <mesh position={[0, (height / 2) - 0.4, 0]} castShadow receiveShadow>
                 <boxGeometry args={[0.88, height, 0.88]} />
                 <meshStandardMaterial map={sideTex} color={palette.wall} roughness={0.9} metalness={0} />
             </mesh>
-            {/* surface cap — the world's own terrain on top */}
+
+            {/* Surface cap — the world's own terrain on top */}
             <mesh position={[0, capY, 0]} castShadow>
                 <boxGeometry args={[0.94, 0.16, 0.94]} />
                 <meshStandardMaterial map={capTex} color={palette.wall} roughness={0.82} metalness={0} />
             </mesh>
+
+            {/* --- Biome-Specific Voxel Details --- */}
+            {hasDetail && (
+                <>
+                    {/* Meadow: Cute 3D Voxel Flower Bloom */}
+                    {theme === 'day' && (
+                        <group position={[detailOffset, capY + 0.1, detailOffset]}>
+                            <mesh position={[0, 0.04, 0]} castShadow>
+                                <boxGeometry args={[0.08, 0.08, 0.08]} />
+                                <meshStandardMaterial color="#fbbf24" roughness={0.6} />
+                            </mesh>
+                            {/* Petals */}
+                            <mesh position={[0.06, 0.04, 0]}>
+                                <boxGeometry args={[0.06, 0.05, 0.06]} />
+                                <meshStandardMaterial color="#ffffff" roughness={0.7} />
+                            </mesh>
+                            <mesh position={[-0.06, 0.04, 0]}>
+                                <boxGeometry args={[0.06, 0.05, 0.06]} />
+                                <meshStandardMaterial color="#ffffff" roughness={0.7} />
+                            </mesh>
+                            <mesh position={[0, 0.04, 0.06]}>
+                                <boxGeometry args={[0.06, 0.05, 0.06]} />
+                                <meshStandardMaterial color="#ffffff" roughness={0.7} />
+                            </mesh>
+                            <mesh position={[0, 0.04, -0.06]}>
+                                <boxGeometry args={[0.06, 0.05, 0.06]} />
+                                <meshStandardMaterial color="#ffffff" roughness={0.7} />
+                            </mesh>
+                        </group>
+                    )}
+
+                    {/* Desert: Stepped Sandstone Ledge */}
+                    {theme === 'desert' && (
+                        <mesh position={[0, capY - 0.25, 0]} castShadow>
+                            <boxGeometry args={[0.92, 0.08, 0.92]} />
+                            <meshStandardMaterial color="#d97706" roughness={0.85} />
+                        </mesh>
+                    )}
+
+                    {/* Alpine: Overhanging Snow Drift */}
+                    {theme === 'alpine' && (
+                        <mesh position={[0, capY + 0.04, 0]} castShadow>
+                            <boxGeometry args={[0.98, 0.12, 0.98]} />
+                            <meshStandardMaterial color="#ffffff" roughness={0.65} />
+                        </mesh>
+                    )}
+
+                    {/* Crystal / Night: Embedded Luminescent Quartz Shard */}
+                    {(theme === 'crystal' || theme === 'night') && (
+                        <group position={[0.25, capY + 0.06, 0.25]} rotation={[0.2, 0.4, 0.3]}>
+                            <mesh castShadow>
+                                <boxGeometry args={[0.14, 0.28, 0.14]} />
+                                <meshStandardMaterial 
+                                    color={palette.highlight} 
+                                    emissive={palette.highlight} 
+                                    emissiveIntensity={1.2} 
+                                    roughness={0.2} 
+                                    metalness={0.2} 
+                                />
+                            </mesh>
+                        </group>
+                    )}
+
+                    {/* Cyber / Dusk: Glowing Circuit Corner Node */}
+                    {(theme === 'cyber' || theme === 'dusk') && (
+                        <group position={[0.35, capY, 0.35]}>
+                            <mesh>
+                                <boxGeometry args={[0.12, 0.14, 0.12]} />
+                                <meshStandardMaterial 
+                                    color={palette.highlight} 
+                                    emissive={palette.highlight} 
+                                    emissiveIntensity={2.0} 
+                                    roughness={0.3} 
+                                />
+                            </mesh>
+                        </group>
+                    )}
+
+                    {/* Volcanic: Glowing Magma Lava Fissure */}
+                    {theme === 'volcanic' && (
+                        <mesh position={[0, capY - 0.2, 0.44]}>
+                            <boxGeometry args={[0.5, 0.1, 0.04]} />
+                            <meshStandardMaterial 
+                                color="#f97316" 
+                                emissive="#ef4444" 
+                                emissiveIntensity={2.5} 
+                                roughness={0.4} 
+                            />
+                        </mesh>
+                    )}
+
+                    {/* Galaxy / Sky: Celestial Gold Filigree Edge */}
+                    {theme === 'galaxy' && (
+                        <group position={[0, capY + 0.08, 0]}>
+                            <mesh>
+                                <boxGeometry args={[0.9, 0.03, 0.9]} />
+                                <meshStandardMaterial 
+                                    color="#fbbf24" 
+                                    emissive="#f59e0b" 
+                                    emissiveIntensity={0.8} 
+                                    roughness={0.3} 
+                                    metalness={0.4} 
+                                />
+                            </mesh>
+                        </group>
+                    )}
+                </>
+            )}
         </group>
     );
-}
+};
 
 export const FloorSystem: React.FC<{ theme: Theme, children: React.ReactNode }> = ({ children }) => {
     return <group>{children}</group>;

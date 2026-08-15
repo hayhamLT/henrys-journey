@@ -391,6 +391,7 @@ const Cell: React.FC<CellProps> = (props) => {
               isOpen={true} 
               isActive={isEndGoalActive} 
               shape="circle" 
+              theme={theme}
           />
       )}
       

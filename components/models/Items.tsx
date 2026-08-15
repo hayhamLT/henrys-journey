@@ -5,7 +5,7 @@ import { Box, Edges } from '@react-three/drei';
 import * as THREE from 'three'; 
 import * as THREE_LIB from 'three'; // Use a safer import for internal refs
 import { damp } from 'maath/easing';
-import { Move, CellType } from '../../types';
+import { Move, CellType, Theme } from '../../types';
 import { VoxelMaterial, LOCK_KEY_COLORS, coordRandom } from './Shared';
 import { getBombTexture, getMatteTexture } from '../../utils/textureGenerator';
 
@@ -232,112 +232,144 @@ export const Bomb: React.FC<{ position: [number, number, number], seed?: number 
     );
 };
 
-export const CosmicPortal: React.FC<{ position: [number, number, number], color: string, isOpen: boolean, isActive?: boolean, rotationSpeed?: number, scale?: number, shape?: 'square' | 'circle' }> = ({ position, color, isOpen, isActive, scale = 0.6, shape = 'square' }) => {
+export const CosmicPortal: React.FC<{ 
+    position: [number, number, number], 
+    color: string, 
+    isOpen: boolean, 
+    isActive?: boolean, 
+    rotationSpeed?: number, 
+    scale?: number, 
+    shape?: 'square' | 'circle',
+    theme?: Theme 
+}> = ({ position, color, isOpen, isActive, scale = 0.6, theme = 'day' }) => {
     const apertureRef = useRef<THREE_LIB.Group>(null);
+    const ringRef = useRef<THREE_LIB.Group>(null);
     const baseTexture = useMemo(() => getMatteTexture('#1e293b'), []); 
-    const scaleRef = useRef(isActive ? 1.5 : (isOpen ? 0.85 : 0.6));
+    const scaleRef = useRef(isActive ? 1.4 : (isOpen ? 1.0 : 0.7));
 
     useFrame((state, delta) => { 
-        const target = isActive ? 1.5 : (isOpen ? 0.85 : 0.6);
-        damp(scaleRef, 'current', target, 0.1, delta);
-        if(apertureRef.current) { 
+        const target = isActive ? 1.4 : (isOpen ? 1.0 : 0.7);
+        damp(scaleRef, 'current', target, 0.15, delta);
+        if (apertureRef.current) { 
             const t = state.clock.elapsedTime; 
-            const breathe = isActive ? (1 + Math.sin(t * 5) * 0.08) : 1.0; 
+            const breathe = isActive ? (1 + Math.sin(t * 6) * 0.08) : 1.0; 
             const s = scaleRef.current * breathe;
-            apertureRef.current.scale.set(s, 1, s); 
-        } 
+            apertureRef.current.scale.set(s, s, s); 
+        }
+        if (ringRef.current && (isOpen || isActive)) {
+            ringRef.current.rotation.z += delta * 1.5;
+        }
     });
 
-    const emissiveInt = isActive ? 5.0 : 2.5;
-
-    if (shape === 'circle') {
-        return (
-            <group position={[position[0], 0, position[2]]} scale={scale}>
-                {/* Octagonal voxel base — not a smooth cylinder */}
-                <mesh position={[0, 0.02, 0]} receiveShadow>
-                    <cylinderGeometry args={[0.45, 0.45, 0.01, 8]} />
-                    <meshStandardMaterial map={baseTexture} color="#1e293b" />
-                </mesh>
-                <group ref={apertureRef} position={[0, 0, 0]}>
-                    {(isOpen || isActive) && (
-                        <mesh position={[0, 0.026, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-                            <circleGeometry args={[0.35, 8]} />
-                            <meshBasicMaterial color="#000000" side={THREE_LIB.DoubleSide} />
-                        </mesh>
-                    )}
-                    <group position={[0, 0.03, 0]}>
-                        {/* Faceted low-poly ring — matches the voxel coin family */}
-                        <mesh rotation={[-Math.PI / 2, 0, 0]}>
-                            <torusGeometry args={[0.35, 0.04, 6, 8]} />
-                            <meshStandardMaterial color={color} emissive={color} emissiveIntensity={emissiveInt} toneMapped={false} roughness={0.4} metalness={0.1} />
-                        </mesh>
-                    </group>
-                </group>
-            </group>
-        );
-    }
+    const emissiveInt = isActive ? 4.0 : (isOpen ? 2.2 : 0.4);
+    const archColor = color || '#38bdf8';
 
     return (
         <group position={[position[0], 0, position[2]]} scale={scale}>
-            <mesh position={[0, 0.02, 0]} receiveShadow castShadow>
-                <boxGeometry args={[0.7, 0.04, 0.7]} />
-                <meshStandardMaterial map={baseTexture} color="#1e293b" />
+            {/* Ground Pedestal Base */}
+            <mesh position={[0, 0.03, 0]} receiveShadow castShadow>
+                <cylinderGeometry args={[0.62, 0.68, 0.06, 8]} />
+                <meshStandardMaterial map={baseTexture} color="#0f172a" roughness={0.8} />
             </mesh>
-            <group ref={apertureRef}>
-                {(isOpen || isActive) && (
-                    <mesh position={[0, 0.041, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-                        <planeGeometry args={[0.45, 0.45]} />
-                        <meshBasicMaterial color="#000000" side={THREE_LIB.DoubleSide} />
-                    </mesh>
-                )}
-                <group position={[0, 0.05, 0]}>
-                    <mesh position={[0, 0, 0.25]}>
-                        <boxGeometry args={[0.6, 0.05, 0.1]} />
-                        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={emissiveInt} toneMapped={false} roughness={0.4} metalness={0.1} />
-                    </mesh>
-                    <mesh position={[0, 0, -0.25]}>
-                        <boxGeometry args={[0.6, 0.05, 0.1]} />
-                        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={emissiveInt} toneMapped={false} roughness={0.4} metalness={0.1} />
-                    </mesh>
-                    <mesh position={[0.25, 0, 0]} rotation={[0, Math.PI / 2, 0]}>
-                        <boxGeometry args={[0.6, 0.05, 0.1]} />
-                        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={emissiveInt} toneMapped={false} roughness={0.4} metalness={0.1} />
-                    </mesh>
-                    <mesh position={[-0.25, 0, 0]} rotation={[0, Math.PI / 2, 0]}>
-                        <boxGeometry args={[0.6, 0.05, 0.1]} />
-                        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={emissiveInt} toneMapped={false} roughness={0.4} metalness={0.1} />
+
+            {/* Inner Swirling Energy Disc */}
+            <group ref={apertureRef} position={[0, 0.065, 0]}>
+                <mesh rotation={[-Math.PI / 2, 0, 0]}>
+                    <circleGeometry args={[0.42, 8]} />
+                    <meshBasicMaterial color="#020617" side={THREE_LIB.DoubleSide} />
+                </mesh>
+                
+                {/* Glowing Floor Aperture Ring */}
+                <group ref={ringRef}>
+                    <mesh rotation={[-Math.PI / 2, 0, 0]}>
+                        <torusGeometry args={[0.38, 0.035, 6, 8]} />
+                        <meshStandardMaterial 
+                            color={archColor} 
+                            emissive={archColor} 
+                            emissiveIntensity={emissiveInt} 
+                            toneMapped={false} 
+                            roughness={0.3} 
+                            metalness={0.2} 
+                        />
                     </mesh>
                 </group>
+            </group>
+
+            {/* 3D Toy Archway Pillars (Left & Right) */}
+            <group position={[0, 0, 0]}>
+                {/* Left Pillar */}
+                <mesh position={[-0.42, 0.45, 0]} castShadow>
+                    <boxGeometry args={[0.14, 0.85, 0.14]} />
+                    <meshStandardMaterial color="#334155" roughness={0.7} metalness={0.1} />
+                </mesh>
+                <mesh position={[-0.42, 0.9, 0]} castShadow>
+                    <boxGeometry args={[0.18, 0.08, 0.18]} />
+                    <meshStandardMaterial color={archColor} emissive={archColor} emissiveIntensity={emissiveInt * 0.5} roughness={0.4} />
+                </mesh>
+
+                {/* Right Pillar */}
+                <mesh position={[0.42, 0.45, 0]} castShadow>
+                    <boxGeometry args={[0.14, 0.85, 0.14]} />
+                    <meshStandardMaterial color="#334155" roughness={0.7} metalness={0.1} />
+                </mesh>
+                <mesh position={[0.42, 0.9, 0]} castShadow>
+                    <boxGeometry args={[0.18, 0.08, 0.18]} />
+                    <meshStandardMaterial color={archColor} emissive={archColor} emissiveIntensity={emissiveInt * 0.5} roughness={0.4} />
+                </mesh>
+
+                {/* Top Lintel Arch Beam */}
+                <mesh position={[0, 0.96, 0]} castShadow>
+                    <boxGeometry args={[1.02, 0.14, 0.16]} />
+                    <meshStandardMaterial color="#1e293b" roughness={0.75} metalness={0.1} />
+                </mesh>
+
+                {/* Center Gateway Crest */}
+                <mesh position={[0, 1.05, 0]} castShadow>
+                    <boxGeometry args={[0.22, 0.12, 0.18]} />
+                    <meshStandardMaterial 
+                        color={archColor} 
+                        emissive={archColor} 
+                        emissiveIntensity={emissiveInt} 
+                        roughness={0.3} 
+                    />
+                </mesh>
             </group>
         </group>
     );
 };
 
-// A floating, glowing "$" beacon that hovers over a teleporter pad — reframing
-// the warp as a MONEY TRANSFER point (wire/ATM): step in here, your money
-// (and you) move instantly to the linked pad. (Restored — the "old old" portal.)
+// A floating, glowing transfer emblem that hovers over a teleporter pad
 const TransferEmblem: React.FC<{ position: [number, number, number], color: string }> = ({ position, color }) => {
     const ref = useRef<THREE_LIB.Group>(null);
     useFrame((state) => {
         if (ref.current) {
-            ref.current.rotation.y += 0.02;
-            ref.current.position.y = 0.6 + Math.sin(state.clock.elapsedTime * 2) * 0.07;
+            ref.current.rotation.y += 0.03;
+            ref.current.position.y = 0.55 + Math.sin(state.clock.elapsedTime * 2.5) * 0.06;
         }
     });
-    const matProps = { color, emissive: color, emissiveIntensity: 2.2, toneMapped: false, roughness: 0.4, metalness: 0.3 };
+    const matProps = { color, emissive: color, emissiveIntensity: 2.5, toneMapped: false, roughness: 0.3, metalness: 0.2 };
     return (
-        <group position={[position[0], 0.6, position[2]]} ref={ref} scale={0.5}>
-            <mesh><boxGeometry args={[0.07, 0.5, 0.07]} /><meshStandardMaterial {...matProps} /></mesh>
-            <mesh position={[0, 0.17, 0]}><boxGeometry args={[0.32, 0.08, 0.07]} /><meshStandardMaterial {...matProps} /></mesh>
-            <mesh position={[0, 0, 0]}><boxGeometry args={[0.32, 0.08, 0.07]} /><meshStandardMaterial {...matProps} /></mesh>
-            <mesh position={[0, -0.17, 0]}><boxGeometry args={[0.32, 0.08, 0.07]} /><meshStandardMaterial {...matProps} /></mesh>
+        <group position={[position[0], 0.55, position[2]]} ref={ref} scale={0.45}>
+            {/* Boxy Transfer Beacon */}
+            <mesh castShadow><boxGeometry args={[0.08, 0.44, 0.08]} /><meshStandardMaterial {...matProps} /></mesh>
+            <mesh position={[0, 0.15, 0]} castShadow><boxGeometry args={[0.28, 0.08, 0.08]} /><meshStandardMaterial {...matProps} /></mesh>
+            <mesh position={[0, 0, 0]} castShadow><boxGeometry args={[0.28, 0.08, 0.08]} /><meshStandardMaterial {...matProps} /></mesh>
+            <mesh position={[0, -0.15, 0]} castShadow><boxGeometry args={[0.28, 0.08, 0.08]} /><meshStandardMaterial {...matProps} /></mesh>
         </group>
     );
 };
 
 export const Teleporter: React.FC<{ position: [number, number, number], color: string }> = ({ position, color }) => (
     <group>
-        <CosmicPortal position={position} color={color} isOpen={true} scale={0.5} shape="square" />
+        {/* Voxel Warp Pad */}
+        <mesh position={[position[0], 0.02, position[2]]} receiveShadow>
+            <cylinderGeometry args={[0.48, 0.52, 0.04, 8]} />
+            <meshStandardMaterial color="#0f172a" roughness={0.8} />
+        </mesh>
+        <mesh position={[position[0], 0.045, position[2]]}>
+            <torusGeometry args={[0.36, 0.03, 6, 8]} />
+            <meshStandardMaterial color={color} emissive={color} emissiveIntensity={2.0} roughness={0.3} toneMapped={false} />
+        </mesh>
         <TransferEmblem position={position} color={color} />
     </group>
 );
