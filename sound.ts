@@ -358,11 +358,12 @@ export const playSound = (type: string, combo: number = 0) => {
         case 'addMove': playSimpleTone(420, 'triangle', 0.09, 0.05); break;
         case 'removeMove': playSimpleTone(220, 'triangle', 0.09, 0.045); break;
         case 'collect': {
-            // Rising pitch as a collect combo grows (capped ~+1 octave) so a tight
-            // pickup chain audibly climbs — every coin in the chain feels better.
-            const p = Math.pow(2, (Math.min(Math.max(combo - 1, 0), 6) * 2) / 12);
-            playSimpleTone(620 * p, 'sine', 0.16, 0.06);
-            setTimeout(() => playSimpleTone(760 * p, 'triangle', 0.18, 0.05), 55);
+            // Ascending pentatonic/major arpeggio per pickup in the chain (C5, E5, G5, C6, E6, G6, C7)
+            const NOTES = [523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98, 2093.00];
+            const baseFreq = NOTES[Math.min(Math.max(combo, 0), NOTES.length - 1)];
+            playSimpleTone(baseFreq, 'sine', 0.18, 0.07);
+            setTimeout(() => playSimpleTone(baseFreq * 1.25, 'triangle', 0.14, 0.04), 45);
+            setTimeout(() => playSimpleTone(baseFreq * 1.5, 'sine', 0.22, 0.035), 90);
             break;
         }
         case 'unlock': 

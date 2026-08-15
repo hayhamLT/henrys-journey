@@ -30,6 +30,9 @@ interface SequenceProps {
   currentUserRole?: 'host' | 'guest' | null;
   isGhostAtEnd?: boolean;
   isAutoplayActive?: boolean;
+  par?: number;
+  executionSpeed?: 1 | 2 | 3;
+  onSpeedChange?: (speed: 1 | 2 | 3) => void;
 }
 
 const MoveIcon: React.FC<{ move: Move }> = ({ move }) => {
@@ -41,7 +44,7 @@ const MoveIcon: React.FC<{ move: Move }> = ({ move }) => {
   );
 };
 
-const Sequence: React.FC<SequenceProps> = ({ sequence, isExecuting, failedMoveIndex, currentMoveIndex, gameStatus, isTouchDevice, isPhasingMode, onTogglePhase, isTutorialActive, tutorialHintMove, highlightedButton, isLoading, onRemoveLastMove, onRun, onRetry, autoSolvers = 0, onAutoSolve, hasAutoSolved, label, accentColor, isReady, isOnline, currentUserRole, isGhostAtEnd, isAutoplayActive }) => {
+const Sequence: React.FC<SequenceProps> = ({ sequence, isExecuting, failedMoveIndex, currentMoveIndex, gameStatus, isTouchDevice, isPhasingMode, onTogglePhase, isTutorialActive, tutorialHintMove, highlightedButton, isLoading, onRemoveLastMove, onRun, onRetry, autoSolvers = 0, onAutoSolve, hasAutoSolved, label, accentColor, isReady, isOnline, currentUserRole, isGhostAtEnd, isAutoplayActive, par, executionSpeed = 1, onSpeedChange }) => {
   const isGuided = !isPhasingMode && isExecuting;
   const containerRef = useRef<HTMLDivElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
@@ -164,6 +167,23 @@ const Sequence: React.FC<SequenceProps> = ({ sequence, isExecuting, failedMoveIn
         ref={containerRef}
         className="flex-grow flex flex-row flex-nowrap gap-1 p-2 items-center overflow-x-auto no-scrollbar relative bg-transparent"
       >
+        {/* Live Par Tracking Badge */}
+        {par !== undefined && par > 0 && hasSequence && !isExecuting && (
+            <div className="absolute top-1 left-2 z-20 pointer-events-none animate-in fade-in duration-200">
+                <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-slate-900/90 border border-white/20 backdrop-blur-md text-[9px] font-bold shadow-md">
+                    <span className="text-slate-300 tabular-nums">{sequence.length}/{par} moves</span>
+                    <span className="w-px h-2.5 bg-white/20" />
+                    {sequence.length < par ? (
+                        <span className="text-amber-300 font-black flex items-center gap-0.5">🥇 Gold</span>
+                    ) : sequence.length === par ? (
+                        <span className="text-slate-200 font-black flex items-center gap-0.5">🥈 Silver</span>
+                    ) : (
+                        <span className="text-amber-500 font-black flex items-center gap-0.5">🥉 Bronze</span>
+                    )}
+                </div>
+            </div>
+        )}
+
         <div className="flex flex-row flex-nowrap gap-1 w-full items-center min-w-full px-2 h-full" style={{ justifyContent: shouldAlignLeft ? 'flex-start' : 'center' }}>
             {displayedSequence.length === 0 && !tutorialHintMove ? (
             <div className="w-full text-center text-white/30 text-[11px] font-bold tracking-wide whitespace-nowrap opacity-70">
@@ -240,8 +260,25 @@ const Sequence: React.FC<SequenceProps> = ({ sequence, isExecuting, failedMoveIn
         </div>
       </div>
 
-      {/* Undo & Run/Retry Buttons - Section 3 (Right) */}
+      {/* Speed, Undo & Run/Retry Buttons - Section 3 (Right) */}
       <div className="shrink-0 flex items-center h-full border-l border-white/10 bg-transparent">
+          {/* Speed Multiplier Button (1x / 2x / 3x) */}
+          <button
+              onClick={() => {
+                  triggerHaptic('light');
+                  const nextSpeed = executionSpeed === 1 ? 2 : executionSpeed === 2 ? 3 : 1;
+                  onSpeedChange?.(nextSpeed as 1 | 2 | 3);
+              }}
+              aria-label="Execution Speed"
+              title={`Playback Speed: ${executionSpeed}x (Tap to change)`}
+              className="h-full w-12 sm:w-14 flex flex-col items-center justify-center hover:bg-white/10 active:scale-95 group border-r border-white/10 transition-all duration-150"
+          >
+              <span className={`font-display text-xs font-black tracking-wider ${executionSpeed === 3 ? 'text-amber-400 scale-110' : executionSpeed === 2 ? 'text-cyan-400' : 'text-slate-400'}`}>
+                  {executionSpeed}x
+              </span>
+              <span className="text-[7px] font-bold uppercase tracking-wider text-slate-500">SPEED</span>
+          </button>
+
           <button
               onClick={() => {
                   triggerHaptic('light');
@@ -249,7 +286,7 @@ const Sequence: React.FC<SequenceProps> = ({ sequence, isExecuting, failedMoveIn
               }}
               disabled={isExecuting || !hasSequence || (isTutorialActive && highlightedButton !== 'undo') || isLoading || isAutoplayActive}
               aria-label="Undo"
-              className={`h-full w-14 sm:w-16 flex flex-col items-center justify-center hover:bg-white/10 active:scale-95 group border-r border-white/10 transition-all duration-150 ${highlightedButton === 'undo' ? 'bg-red-500/20 animate-pulse' : ''}`}
+              className={`h-full w-12 sm:w-14 flex flex-col items-center justify-center hover:bg-white/10 active:scale-95 group border-r border-white/10 transition-all duration-150 ${highlightedButton === 'undo' ? 'bg-red-500/20 animate-pulse' : ''}`}
           >
               <div className="text-white/40 group-hover:text-red-400 group-hover:scale-110 transition-all duration-150 scale-90 sm:scale-100">
                   <ICONS.Backspace />

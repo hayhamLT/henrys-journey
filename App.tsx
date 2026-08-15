@@ -438,7 +438,9 @@ export const App: React.FC = () => {
   
   const isLeavingCoopRef = useRef(false);
 
-  const STEP_DURATION = 250;
+  // Playback Execution Speed (1x = 250ms, 2x = 125ms, 3x = 83ms)
+  const [executionSpeed, setExecutionSpeed] = useState<1 | 2 | 3>(1);
+  const STEP_DURATION = Math.round(250 / executionSpeed);
 
   const isGameplayState = useMemo(() => ['play', 'challenge_play', 'tournament_play', 'coop_play'].includes(appState), [appState]);
 
@@ -2993,6 +2995,9 @@ export const App: React.FC = () => {
                                       currentUserRole={appState === 'coop_play' ? coopRole : null}
                                       isGhostAtEnd={isGhostAtEnd} 
                                       isAutoplayActive={isAutoplayActive}
+                                      par={currentLevel?.par}
+                                      executionSpeed={executionSpeed}
+                                      onSpeedChange={setExecutionSpeed}
                                   />
                               </div>
                           </div>
